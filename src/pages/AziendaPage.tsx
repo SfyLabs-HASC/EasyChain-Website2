@@ -197,34 +197,13 @@ export default function AziendaPage() {
             const MAX_SIZE_MB = 5; const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024; const ALLOWED_FORMATS = ['image/png', 'image/jpeg', 'image/webp'];
             if (selectedFile.size > MAX_SIZE_BYTES) { setTxResult({ status: 'error', message: `File troppo grande. Limite: ${MAX_SIZE_MB} MB.` }); return; }
             if (!ALLOWED_FORMATS.includes(selectedFile.type)) { setTxResult({ status: 'error', message: 'Formato immagine non supportato.' }); return; }
-            
             setLoadingMessage('Caricamento Immagine...');
             try {
-                const body = new FormData(); 
-                body.append('file', selectedFile); 
-                body.append('companyName', contributorData?.[0] || 'AziendaGenerica');
-                // --- MODIFICA APPORTATA QUI ---
-                // Invia anche il titolo dell'iscrizione al backend.
-                body.append('inscriptionTitle', formData.name);
-
+                const body = new FormData(); body.append('file', selectedFile); body.append('companyName', contributorData?.[0] || 'AziendaGenerica');
                 const response = await fetch('/api/upload', { method: 'POST', body });
-                
-                if (!response.ok) { 
-                    // Gestione errore migliorata per leggere risposte non-JSON
-                    const errorText = await response.text();
-                    console.error("Errore ricevuto dal server:", errorText);
-                    throw new Error(`Errore del server: ${errorText}`);
-                }
-
-                const { cid } = await response.json(); 
-                if (!cid) throw new Error("CID non ricevuto dall'API di upload."); 
-                imageIpfsHash = cid;
-
-            } catch (error: any) { 
-                setTxResult({ status: 'error', message: `Errore caricamento: ${error.message}` }); 
-                setLoadingMessage(''); 
-                return; 
-            }
+                if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.details || 'Errore dal server di upload.'); }
+                const { cid } = await response.json(); if (!cid) throw new Error("CID non ricevuto dall'API di upload."); imageIpfsHash = cid;
+            } catch (error: any) { setTxResult({ status: 'error', message: `Errore caricamento: ${error.message}` }); setLoadingMessage(''); return; }
         }
         setLoadingMessage('Transazione in corso...');
         const transaction = prepareContractCall({ contract, abi, method: "function initializeBatch(string,string,string,string,string)", params: [formData.name, formData.description, formData.date, formData.location, imageIpfsHash] });
