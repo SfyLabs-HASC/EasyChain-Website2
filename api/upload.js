@@ -1,6 +1,6 @@
-// File: /api/upload.js (Versione Definitiva con logica PUT + HEAD)
+// File: /api/upload.js (Versione Finale con Cartelle per Azienda)
 
-import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { formidable } from 'formidable';
 import fs from 'fs';
 
@@ -14,65 +14,68 @@ const s3Client = new S3Client({
   endpoint: "https://s3.filebase.com",
   region: "us-east-1",
   credentials: {
-    accessKeyId: process.env.VITE_FILEBASE_ACCESS_KEY,
-    secretAccessKey: process.env.VITE_FILEBASE_SECRET_KEY,
+    accessKeyId: process.env.FILEBASE_ACCESS_KEY,
+    secretAccessKey: process.env.FILEBASE_SECRET_KEY,
   },
 });
 
-const BUCKET_NAME = process.env.VITE_FILEBASE_BUCKET_NAME;
+const BUCKET_NAME = process.env.FILEBASE_BUCKET_NAME;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+  
+  if (!process.env.FILEBASE_ACCESS_KEY || !process.env.FILEBASE_BUCKET_NAME) {
+      console.error("Errore: Variabili d'ambiente di Filebase non trovate!");
+      return res.status(500).json({ error: "Configurazione del server errata." });
+  }
 
-  const form = formidable({});
+  try {
+    const form = formidable({});
+    const [fields, files] = await form.parse(req);
 
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error('Error parsing form:', err);
-      return res.status(500).json({ error: 'Error parsing form data.' });
+    const file = files.file?.[0];
+    if (!file) {
+      return res.status(400).json({ error: "Nessun file ricevuto." });
     }
 
-    try {
-      const file = files.file[0];
-      const companyName = fields.companyName[0] || 'AziendaGenerica';
-      const objectKey = `${companyName}/${Date.now()}_${file.originalFilename}`;
-      const fileContent = fs.readFileSync(file.filepath);
+    // --- 1. RICEZIONE E PULIZIA DEL NOME AZIENDA ---
+    // Riceve il nome dell'azienda inviato dal frontend.
+    const companyName = fields.companyName?.[0] || 'AziendaGenerica';
+    
+    // "Pulisce" il nome per renderlo un nome di cartella valido:
+    // - Sostituisce spazi e caratteri speciali con un trattino
+    // - Rimuove tutto ciò che non è una lettera, un numero o un trattino
+    const folderName = companyName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
 
-      // --- FASE 1: UPLOAD DEL FILE (PUT) ---
-      const putCommand = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: objectKey,
-        Body: fileContent,
-        ContentType: file.mimetype,
-      });
-      await s3Client.send(putCommand);
+    // --- 2. CREAZIONE DEL PERCORSO COMPLETO (KEY) ---
+    // Crea il percorso completo: nome-cartella/timestamp_nomefile.ext
+    const objectKey = `${folderName}/${Date.now()}_${file.originalFilename}`;
 
-      // --- FASE 2: RICHIESTA DEI METADATI (HEAD) ---
-      // Ora che il file è caricato, chiediamo a Filebase le sue informazioni.
-      const headCommand = new HeadObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: objectKey,
-      });
-      const headResult = await s3Client.send(headCommand);
+    const fileContent = fs.readFileSync(file.filepath);
 
-      // La risposta a HEAD conterrà i metadati che cerchiamo.
-      const cid = headResult.Metadata?.cid;
+    const putCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: objectKey, // Usa il percorso completo con la "cartella"
+      Body: fileContent,
+      ContentType: file.mimetype,
+    });
 
-      if (!cid) {
-        console.error("CID non trovato nei Metadata della richiesta HEAD. Risposta HEAD:", headResult);
-        // Se anche qui non c'è, usiamo l'ETag come ultimissima risorsa.
-        const fallbackId = headResult.ETag?.replace(/"/g, "");
-        return res.status(200).json({ cid: fallbackId });
-      }
+    const putResult = await s3Client.send(putCommand);
+    const cid = putResult.ETag?.replace(/"/g, '');
 
-      // Restituiamo il CID corretto al browser!
-      return res.status(200).json({ cid });
-
-    } catch (error) {
-      console.error('Upload/Head Error:', error);
-      return res.status(500).json({ error: 'File upload failed.', details: error.message });
+    if (!cid) {
+        throw new Error("Impossibile ottenere il CID da Filebase.");
     }
-  });
+    
+    fs.unlinkSync(file.filepath);
+
+    console.log(`Upload completato per ${companyName}. Percorso: ${objectKey}. CID: ${cid}`);
+    return res.status(200).json({ cid: cid });
+
+  } catch (error) {
+    console.error('Errore durante l'upload:', error);
+    return res.status(500).json({ error: 'Upload del file fallito.', details: error.message });
+  }
 }
