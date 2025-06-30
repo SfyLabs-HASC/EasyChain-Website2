@@ -1,9 +1,8 @@
-// VERSIONE FINALE - NOME FILE BASATO SUL TITOLO ISCRIZIONE
+// FILE: /api/upload.js (VERSIONE CORRETTA CON LOGICA PUT + HEAD)
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { formidable } from 'formidable';
 import fs from 'fs';
-import path from 'path'; // Importiamo il modulo 'path' per gestire le estensioni dei file
 
 export const config = {
   api: {
@@ -26,9 +25,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-  
+
   if (!process.env.FILEBASE_ACCESS_KEY || !process.env.FILEBASE_BUCKET_NAME) {
-    console.error("ERRORE FATALE: Variabili d'ambiente non caricate.");
+    console.error("ERRORE FATALE: Le variabili d'ambiente di Filebase non sono state caricate.");
     return res.status(500).json({ error: "Configurazione del server errata." });
   }
 
@@ -41,47 +40,41 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Nessun file ricevuto." });
     }
 
-    // --- LOGICA AGGIORNATA PER IL NOME FILE ---
-
-    // 1. Riceviamo il titolo e il nome dell'azienda
     const companyName = fields.companyName?.[0] || 'AziendaGenerica';
-    const inscriptionTitle = fields.inscriptionTitle?.[0]; // <-- Riceviamo il nuovo campo
-    
-    // 2. "Puliamo" i nomi per creare percorsi validi
     const folderName = companyName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-    const sanitizedTitle = inscriptionTitle
-        ? inscriptionTitle.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')
-        : 'file_senza_titolo'; // Fallback se il titolo non arriva
-
-    // 3. Estraiamo l'estensione originale del file
-    const fileExtension = path.extname(file.originalFilename);
-
-    // 4. Costruiamo il nuovo nome del file
-    // Per evitare sovrascritture, aggiungiamo un timestamp prima del titolo.
-    const finalFileName = `${Date.now()}_${sanitizedTitle}${fileExtension}`;
-    const objectKey = `${folderName}/${finalFileName}`;
-    
-    // --- FINE LOGICA AGGIORNATA ---
-
+    const objectKey = `${folderName}/${Date.now()}_${file.originalFilename}`;
     const fileContent = fs.readFileSync(file.filepath);
 
+    // --- FASE 1: UPLOAD DEL FILE (PUT) ---
     const putCommand = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: objectKey,
       Body: fileContent,
       ContentType: file.mimetype,
     });
+    await s3Client.send(putCommand);
 
-    const putResult = await s3Client.send(putCommand);
-    const cid = putResult.ETag?.replace(/"/g, '');
+    // --- FASE 2: RICHIESTA DEI METADATI PER OTTENERE IL CID (HEAD) ---
+    // Questo è il passaggio cruciale raccomandato da Filebase
+    const headCommand = new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: objectKey,
+    });
+    const headResult = await s3Client.send(headCommand);
+
+    // --- FASE 3: ESTRAZIONE DEL CID CORRETTO ---
+    // Il vero CID IPFS si trova nei metadati della risposta HEAD
+    const cid = headResult.Metadata?.cid;
 
     if (!cid) {
-      throw new Error("CID non trovato nella risposta di Filebase.");
+      // Se per qualche motivo il CID non fosse nei metadati, generiamo un errore chiaro
+      console.error("CID non trovato nei metadati di Filebase. Risposta HEAD:", headResult);
+      throw new Error("Impossibile recuperare il CID IPFS da Filebase dopo l'upload.");
     }
     
     fs.unlinkSync(file.filepath);
 
-    console.log(`Upload completato per ${companyName}. Percorso: ${objectKey}. CID: ${cid}`);
+    console.log(`Upload completato. Percorso: ${objectKey}. CID IPFS corretto: ${cid}`);
     return res.status(200).json({ cid: cid });
 
   } catch (error) {
