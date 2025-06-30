@@ -1,4 +1,4 @@
-// File: /api/upload.js (Versione Finale con Cartelle per Azienda)
+// VERSIONE CORRETTA E TESTATA - 30/06/2025
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { formidable } from 'formidable';
@@ -27,8 +27,8 @@ export default async function handler(req, res) {
   }
   
   if (!process.env.FILEBASE_ACCESS_KEY || !process.env.FILEBASE_BUCKET_NAME) {
-      console.error("Errore: Variabili d'ambiente di Filebase non trovate!");
-      return res.status(500).json({ error: "Configurazione del server errata." });
+    console.error("ERRORE FATALE: Le variabili d'ambiente di Filebase non sono state caricate dal server di Vercel.");
+    return res.status(500).json({ error: "Configurazione del server errata. Controllare le variabili d'ambiente su Vercel." });
   }
 
   try {
@@ -37,27 +37,17 @@ export default async function handler(req, res) {
 
     const file = files.file?.[0];
     if (!file) {
-      return res.status(400).json({ error: "Nessun file ricevuto." });
+      return res.status(400).json({ error: "Nessun file ricevuto dal frontend." });
     }
 
-    // --- 1. RICEZIONE E PULIZIA DEL NOME AZIENDA ---
-    // Riceve il nome dell'azienda inviato dal frontend.
     const companyName = fields.companyName?.[0] || 'AziendaGenerica';
-    
-    // "Pulisce" il nome per renderlo un nome di cartella valido:
-    // - Sostituisce spazi e caratteri speciali con un trattino
-    // - Rimuove tutto ciò che non è una lettera, un numero o un trattino
     const folderName = companyName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
-
-    // --- 2. CREAZIONE DEL PERCORSO COMPLETO (KEY) ---
-    // Crea il percorso completo: nome-cartella/timestamp_nomefile.ext
     const objectKey = `${folderName}/${Date.now()}_${file.originalFilename}`;
-
     const fileContent = fs.readFileSync(file.filepath);
 
     const putCommand = new PutObjectCommand({
       Bucket: BUCKET_NAME,
-      Key: objectKey, // Usa il percorso completo con la "cartella"
+      Key: objectKey,
       Body: fileContent,
       ContentType: file.mimetype,
     });
@@ -66,7 +56,7 @@ export default async function handler(req, res) {
     const cid = putResult.ETag?.replace(/"/g, '');
 
     if (!cid) {
-        throw new Error("Impossibile ottenere il CID da Filebase.");
+      throw new Error("CID non trovato nella risposta di Filebase dopo l'upload.");
     }
     
     fs.unlinkSync(file.filepath);
@@ -75,7 +65,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ cid: cid });
 
   } catch (error) {
-    console.error('Errore durante l'upload:', error);
-    return res.status(500).json({ error: 'Upload del file fallito.', details: error.message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('ERRORE CRITICO DURANTE L\'UPLOAD:', errorMessage);
+    return res.status(500).json({ error: 'Upload del file fallito.', details: errorMessage });
   }
 }
