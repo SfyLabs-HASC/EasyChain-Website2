@@ -157,7 +157,7 @@ export default function AziendaPage() {
         if (!account?.address) return;
         setIsLoadingBatches(true);
 
-        const insightUrl = `https://polygon.api.thirdweb.com/v1/events`;
+        const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
 
         const params = new URLSearchParams({
             contract_address: CONTRACT_ADDRESS,
