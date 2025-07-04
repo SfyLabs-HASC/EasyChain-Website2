@@ -69,7 +69,7 @@ const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2e
 const contract = getContract({ 
   client, 
   chain: polygon,
-  address: "0x4a866C3A071816E3186e18cbE99a3339f4571302"
+  address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e" // <-- INDIRIZZO MODIFICATO QUI
 });
 
 const RegistrationForm = () => ( <div className="card"><h3>Benvenuto su Easy Chain!</h3><p>Il tuo account non è ancora attivo. Compila il form di registrazione per inviare una richiesta di attivazione.</p></div> );
