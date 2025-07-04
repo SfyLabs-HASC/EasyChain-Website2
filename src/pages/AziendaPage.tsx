@@ -160,11 +160,10 @@ export default function AziendaPage() {
         const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
 
         const params = new URLSearchParams({
-            contract_address: CONTRACT_ADDRESS,
-            event_name: 'BatchInitialized',
-            'filters[contributor]': account.address,
-            limit: '1000'
-        });
+    contract_address: CONTRACT_ADDRESS,
+    event_name: 'BatchInitialized',
+    limit: '1000'
+});
 
         try {
             const response = await fetch(`${insightUrl}?${params.toString()}`, {
