@@ -69,7 +69,7 @@ const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2e
 const contract = getContract({ 
   client, 
   chain: polygon,
-  address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e" // <-- INDIRIZZO MODIFICATO QUI
+  address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e"
 });
 
 const RegistrationForm = () => ( <div className="card"><h3>Benvenuto su Easy Chain!</h3><p>Il tuo account non è ancora attivo. Compila il form di registrazione per inviare una richiesta di attivazione.</p></div> );
@@ -135,7 +135,6 @@ const DashboardHeader = ({ contributorInfo, onNewInscriptionClick }: { contribut
 
 const getInitialFormData = () => ({ name: "", description: "", date: "", location: "" });
 
-// Funzione per troncare il testo
 const truncateText = (text: string, maxLength: number) => {
     if (!text) return text;
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
@@ -212,6 +211,41 @@ export default function AziendaPage() {
             onError: (err) => { setTxResult({ status: 'error', message: err.message.toLowerCase().includes("insufficient funds") ? "Crediti Insufficienti, Ricarica" : "Errore nella transazione." }); setLoadingMessage(''); } 
         });
     };
+
+    // ==================================================================
+    // ========= FUNZIONE DI TEST DA AGGIUNGERE =========================
+    // ==================================================================
+    const handleTestTransaction = async () => {
+      console.log("Inizio transazione di test...");
+      try {
+        const transaction = prepareContractCall({ 
+          contract, 
+          abi, 
+          method: "function initializeBatch(string,string,string,string,string)", 
+          params: [
+            "Test Batch",       // _name
+            "Descrizione test", // _description
+            "2025-07-04",       // _date
+            "Luogo Test",       // _location
+            "N/A"               // _imageIpfsHash
+          ] 
+        });
+
+        sendTransaction(transaction, { 
+          onSuccess: (result) => { 
+            console.log("✅ Transazione di TEST inviata con successo!", result);
+            alert("TEST RIUSCITO! La transazione è stata inviata.");
+          },
+          onError: (err) => { 
+            console.error("❌ Errore nella transazione di TEST:", err);
+            alert(`TEST FALLITO! Errore: ${err.message}`);
+          } 
+        });
+      } catch (error) {
+        console.error("Errore imprevisto durante la preparazione del test:", error);
+        alert("Errore imprevisto nel test.");
+      }
+    };
     
     const openModal = () => { setFormData(getInitialFormData()); setSelectedFile(null); setCurrentStep(1); setTxResult(null); setModal('init'); }
     const handleCloseModal = () => setModal(null);
@@ -227,6 +261,16 @@ export default function AziendaPage() {
         return (
             <> 
                 <DashboardHeader contributorInfo={contributorData} onNewInscriptionClick={openModal} /> 
+                
+                {/* ================================================================== */}
+                {/* ========= PULSANTE DI TEST DA AGGIUNGERE ======================= */}
+                {/* ================================================================== */}
+                <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                  <button className="web3-button" style={{backgroundColor: '#c0392b', padding: '1rem 2rem', fontSize: '1.1rem'}} onClick={handleTestTransaction}>
+                    ESEGUI TEST TRANSAZIONE
+                  </button>
+                </div>
+
                 {isLoadingBatches ? <p style={{textAlign: 'center', marginTop: '2rem'}}>Caricamento iscrizioni...</p> : <BatchTable batches={filteredBatches} nameFilter={nameFilter} setNameFilter={setNameFilter} locationFilter={locationFilter} setLocationFilter={setLocationFilter} statusFilter={statusFilter} setStatusFilter={setStatusFilter}/>} 
             </>
         ); 
