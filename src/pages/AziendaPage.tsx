@@ -64,12 +64,9 @@ const AziendaPageStyles = () => (
 );
 
 const CLIENT_ID = "e40dfd747fabedf48c5837fb79caf2eb";
-const CONTRACT_ADDRESS =
-  "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
+const CONTRACT_ADDRESS = "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
 
-const client = createThirdwebClient({
-  clientId: CLIENT_ID,
-});
+const client = createThirdwebClient({ clientId: CLIENT_ID });
 const contract = getContract({
   client,
   chain: polygon,
@@ -80,22 +77,14 @@ const RegistrationForm = () => (
   <div className="card">
     <h3>Benvenuto su Easy Chain!</h3>
     <p>
-      Il tuo account non è ancora attivo. Compila il form di
-      registrazione per inviare una richiesta di
-      attivazione.
+      Il tuo account non è ancora attivo. Compila il form di registrazione per
+      inviare una richiesta di attivazione.
     </p>
   </div>
 );
 
-const BatchRow = ({
-  batch,
-  localId,
-}: {
-  batch: BatchData;
-  localId: number;
-}) => {
-  const [showDescription, setShowDescription] =
-    useState(false);
+const BatchRow = ({ batch, localId }: { batch: BatchData; localId: number }) => {
+  const [showDescription, setShowDescription] = useState(false);
   const { data: stepCount } = useReadContract({
     contract,
     abi,
@@ -122,11 +111,7 @@ const BatchRow = ({
         </td>
         <td>{formatDate(batch.date)}</td>
         <td>{batch.location || "/"}</td>
-        <td>
-          {stepCount !== undefined
-            ? stepCount.toString()
-            : "/"}
-        </td>
+        <td>{stepCount !== undefined ? stepCount.toString() : "/"}</td>
         <td>
           {batch.isClosed ? (
             <span className="status-closed">✅ Chiuso</span>
@@ -163,18 +148,14 @@ const BatchRow = ({
               <strong>ID:</strong> {localId}
             </p>
             <p>
-              <strong>Data:</strong>{" "}
-              {formatDate(batch.date)}
+              <strong>Data:</strong> {formatDate(batch.date)}
             </p>
             <p>
-              <strong>Luogo:</strong>{" "}
-              {batch.location || "/"}
+              <strong>Luogo:</strong> {batch.location || "/"}
             </p>
             <p>
               <strong>N° Passaggi:</strong>{" "}
-              {stepCount !== undefined
-                ? stepCount.toString()
-                : "/"}
+              {stepCount !== undefined ? stepCount.toString() : "/"}
             </p>
           </div>
           <div className="card-footer">
@@ -200,10 +181,7 @@ const BatchRow = ({
               <h2>Descrizione Iscrizione / Lotto</h2>
             </div>
             <div className="modal-body">
-              <p>
-                {batch.description ||
-                  "Nessuna descrizione fornita."}
-              </p>
+              <p>{batch.description || "Nessuna descrizione fornita."}</p>
             </div>
             <div className="modal-footer">
               <button
@@ -242,27 +220,19 @@ const BatchTable = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsToShow, setItemsToShow] = useState(10);
   const MAX_PER_PAGE = 30;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(batches.length / MAX_PER_PAGE),
-  );
+  const totalPages = Math.max(1, Math.ceil(batches.length / MAX_PER_PAGE));
   const startIndex = (currentPage - 1) * MAX_PER_PAGE;
   const itemsOnCurrentPage = batches.slice(
     startIndex,
-    startIndex + MAX_PER_PAGE,
+    startIndex + MAX_PER_PAGE
   );
-  const visibleBatches = itemsOnCurrentPage.slice(
-    0,
-    itemsToShow,
-  );
+  const visibleBatches = itemsOnCurrentPage.slice(0, itemsToShow);
   useEffect(() => {
     setCurrentPage(1);
     setItemsToShow(10);
   }, [batches, nameFilter, locationFilter, statusFilter]);
   const handleLoadMore = () =>
-    setItemsToShow((prev) =>
-      Math.min(prev + 10, MAX_PER_PAGE),
-    );
+    setItemsToShow((prev) => Math.min(prev + 10, MAX_PER_PAGE));
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
@@ -289,9 +259,7 @@ const BatchTable = ({
                 placeholder="Filtra per nome..."
                 className="filter-input"
                 value={nameFilter}
-                onChange={(e) =>
-                  setNameFilter(e.target.value)
-                }
+                onChange={(e) => setNameFilter(e.target.value)}
               />
             </th>
             <th></th>
@@ -301,9 +269,7 @@ const BatchTable = ({
                 placeholder="Filtra per luogo..."
                 className="filter-input"
                 value={locationFilter}
-                onChange={(e) =>
-                  setLocationFilter(e.target.value)
-                }
+                onChange={(e) => setLocationFilter(e.target.value)}
               />
             </th>
             <th></th>
@@ -311,9 +277,7 @@ const BatchTable = ({
               <select
                 className="filter-input"
                 value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(e.target.value)
-                }
+                onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="all">Tutti</option>
                 <option value="open">Aperto</option>
@@ -349,10 +313,7 @@ const BatchTable = ({
       </table>
       <div className="pagination-controls">
         {itemsToShow < itemsOnCurrentPage.length && (
-          <button
-            onClick={handleLoadMore}
-            className="link-button"
-          >
+          <button onClick={handleLoadMore} className="link-button">
             Vedi altri 10...
           </button>
         )}
@@ -361,9 +322,7 @@ const BatchTable = ({
             <>
               {" "}
               <button
-                onClick={() =>
-                  handlePageChange(currentPage - 1)
-                }
+                onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
               >
                 &lt;
@@ -373,9 +332,7 @@ const BatchTable = ({
                 Pagina {currentPage} di {totalPages}{" "}
               </span>{" "}
               <button
-                onClick={() =>
-                  handlePageChange(currentPage + 1)
-                }
+                onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
                 &gt;
@@ -400,9 +357,7 @@ const DashboardHeader = ({
   return (
     <div className="dashboard-header-card">
       <div className="dashboard-header-info">
-        <h2 className="company-name-header">
-          {companyName}
-        </h2>
+        <h2 className="company-name-header">{companyName}</h2>
         <div className="company-status-container">
           <div className="status-item">
             <span>
@@ -457,92 +412,69 @@ export default function AziendaPage() {
     queryOptions: { enabled: !!account },
   });
   const prevAccountRef = useRef(account?.address);
-  const { mutate: sendTransaction, isPending } =
-    useSendTransaction();
+  const { mutate: sendTransaction, isPending } = useSendTransaction();
   const [modal, setModal] = useState<"init" | null>(null);
-  const [formData, setFormData] = useState(
-    getInitialFormData(),
-  );
-  const [selectedFile, setSelectedFile] =
-    useState<File | null>(null);
+  const [formData, setFormData] = useState(getInitialFormData());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [txResult, setTxResult] = useState<{
     status: "success" | "error";
     message: string;
   } | null>(null);
-  const [allBatches, setAllBatches] = useState<BatchData[]>(
-    [],
-  );
-  const [filteredBatches, setFilteredBatches] = useState<
-    BatchData[]
-  >([]);
-  const [isLoadingBatches, setIsLoadingBatches] =
-    useState(true);
+  const [allBatches, setAllBatches] = useState<BatchData[]>([]);
+  const [filteredBatches, setFilteredBatches] = useState<BatchData[]>([]);
+  const [isLoadingBatches, setIsLoadingBatches] = useState(true);
   const [nameFilter, setNameFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ==================================================================
-  // ========= FUNZIONE FETCHALLBATCHES CON INSIGHT API (CORRETTA) =====
-  // ==================================================================
   const fetchAllBatches = async () => {
     if (!account?.address) return;
     setIsLoadingBatches(true);
 
-    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
-
-    // Firma esatta dell’evento BatchInitialized (9 parametri)
+    // Nuovo approccio suggerito dall'utente
+    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events/${CONTRACT_ADDRESS}`;
+    
     const params = new URLSearchParams({
-      contract_address: CONTRACT_ADDRESS,
-      event_signature:
-        "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
-      limit: "100",
+      chain_id: polygon.id.toString(),
+      // 'filter_block_timestamp_gte': '1744193808', // Omesso per semplicità
+      filter_address: account.address, // Filtra per l'indirizzo del wallet loggato
+      limit: "1000",
     });
 
     try {
-      const response = await fetch(
-        `${insightUrl}?${params.toString()}`,
-        {
-          method: "GET",
-          headers: {
-            "x-thirdweb-client-id": CLIENT_ID,
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${insightUrl}?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          "x-thirdweb-client-id": CLIENT_ID,
         },
-      );
+      });
 
       if (!response.ok) {
-        throw new Error(
-          `Errore API di Insight: ${response.statusText}`,
-        );
+        const errorData = await response.text(); // Leggiamo come testo per sicurezza
+        console.error("Dettagli errore API da Insight:", errorData);
+        throw new Error(`Errore API di Insight: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-
-      const formattedBatches = data.result.map(
-        (event: any) => ({
-          id: event.data.batchId.toString(),
-          batchId: BigInt(event.data.batchId),
-          name: event.data.name,
-          description: event.data.description,
-          date: event.data.date,
-          location: event.data.location,
-          isClosed: event.data.isClosed,
-          // Puoi aggiungere: imageIpfsHash: event.data.imageIpfsHash, contributorName: event.data.contributorName
-        }),
+      
+      // Poiché questo endpoint restituisce TUTTI gli eventi, filtriamo qui solo quelli che ci interessano
+      const batchEvents = data.data.filter(
+        (event: any) =>
+          event.topics[0] === '0xb95bee840a4d2ee2f2c80e8110610b7904eb4e773db7b715a8ef848e6848f9be' // Questo è l'hash dell'evento BatchInitialized
       );
 
-      setAllBatches(
-        formattedBatches.sort(
-          (a, b) => Number(b.batchId) - Number(a.batchId),
-        ),
-      );
+      // Ora decodifichiamo i dati di questi eventi. Questa parte è complessa e richiede una libreria di decoding.
+      // Per ORA, mostriamo i dati grezzi per confermare che la chiamata funzioni.
+      console.log("Eventi 'BatchInitialized' ricevuti:", batchEvents);
+      // In un prossimo step, dovremo decodificare il campo "data" di questi eventi per ottenere nome, descrizione, etc.
+
+      // Per ora, non popoliamo la tabella per non causare errori di formato.
+      setAllBatches([]); 
+
     } catch (error) {
-      console.error(
-        "Errore nel caricare i lotti da Insight:",
-        error,
-      );
+      console.error("Errore nel caricare i lotti da Insight:", error);
       setAllBatches([]);
     } finally {
       setIsLoadingBatches(false);
@@ -550,16 +482,10 @@ export default function AziendaPage() {
   };
 
   useEffect(() => {
-    if (
-      account?.address &&
-      prevAccountRef.current !== account.address
-    ) {
-      refetchContributorInfo();
-      fetchAllBatches();
-    } else if (
-      account?.address &&
-      !prevAccountRef.current
-    ) {
+    if (account?.address) {
+      if (prevAccountRef.current !== account.address) {
+        refetchContributorInfo();
+      }
       fetchAllBatches();
     } else if (!account && prevAccountRef.current) {
       window.location.href = "/";
@@ -571,43 +497,28 @@ export default function AziendaPage() {
     let tempBatches = [...allBatches];
     if (nameFilter)
       tempBatches = tempBatches.filter((b) =>
-        b.name
-          .toLowerCase()
-          .includes(nameFilter.toLowerCase()),
+        b.name.toLowerCase().includes(nameFilter.toLowerCase())
       );
     if (locationFilter)
       tempBatches = tempBatches.filter((b) =>
-        b.location
-          .toLowerCase()
-          .includes(locationFilter.toLowerCase()),
+        b.location.toLowerCase().includes(locationFilter.toLowerCase())
       );
     if (statusFilter !== "all") {
       const isOpen = statusFilter === "open";
-      tempBatches = tempBatches.filter(
-        (b) => !b.isClosed === isOpen,
-      );
+      tempBatches = tempBatches.filter((b) => !b.isClosed === isOpen);
     }
     setFilteredBatches(tempBatches);
-  }, [
-    nameFilter,
-    locationFilter,
-    statusFilter,
-    allBatches,
-  ]);
+  }, [nameFilter, locationFilter, statusFilter, allBatches]);
 
   const handleModalInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
     }));
   };
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFile(e.target.files?.[0] || null);
   };
 
@@ -624,11 +535,7 @@ export default function AziendaPage() {
     if (selectedFile) {
       const MAX_SIZE_MB = 5;
       const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
-      const ALLOWED_FORMATS = [
-        "image/png",
-        "image/jpeg",
-        "image/webp",
-      ];
+      const ALLOWED_FORMATS = ["image/png", "image/jpeg", "image/webp"];
       if (selectedFile.size > MAX_SIZE_BYTES) {
         setTxResult({
           status: "error",
@@ -649,7 +556,7 @@ export default function AziendaPage() {
         body.append("file", selectedFile);
         body.append(
           "companyName",
-          contributorData?.[0] || "AziendaGenerica",
+          contributorData?.[0] || "AziendaGenerica"
         );
         const response = await fetch("/api/upload", {
           method: "POST",
@@ -658,15 +565,12 @@ export default function AziendaPage() {
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
-            errorData.details ||
-              "Errore dal server di upload.",
+            errorData.details || "Errore dal server di upload."
           );
         }
         const { cid } = await response.json();
         if (!cid)
-          throw new Error(
-            "CID non ricevuto dall'API di upload.",
-          );
+          throw new Error("CID non ricevuto dall'API di upload.");
         imageIpfsHash = cid;
       } catch (error: any) {
         setTxResult({
@@ -681,8 +585,7 @@ export default function AziendaPage() {
     const transaction = prepareContractCall({
       contract,
       abi,
-      method:
-        "function initializeBatch(string,string,string,string,string)",
+      method: "function initializeBatch(string,string,string,string,string)",
       params: [
         formData.name,
         formData.description,
@@ -706,9 +609,7 @@ export default function AziendaPage() {
       onError: (err) => {
         setTxResult({
           status: "error",
-          message: err.message
-            .toLowerCase()
-            .includes("insufficient funds")
+          message: err.message.toLowerCase().includes("insufficient funds")
             ? "Crediti Insufficienti, Ricarica"
             : "Errore nella transazione.",
         });
@@ -763,9 +664,7 @@ export default function AziendaPage() {
   const renderDashboardContent = () => {
     if (isStatusLoading)
       return (
-        <p
-          style={{ textAlign: "center", marginTop: "4rem" }}
-        >
+        <p style={{ textAlign: "center", marginTop: "4rem" }}>
           Verifica stato account...
         </p>
       );
@@ -778,8 +677,7 @@ export default function AziendaPage() {
             color: "red",
           }}
         >
-          Errore nel recuperare i dati dell'account.
-          Riprova.
+          Errore nel recuperare i dati dell'account. Riprova.
         </p>
       );
     if (!contributorData[2]) return <RegistrationForm />;
@@ -801,9 +699,11 @@ export default function AziendaPage() {
         ) : (
           <BatchTable
             batches={filteredBatches}
-            nameFilter={setNameFilter}
-            locationFilter={setLocationFilter}
-            statusFilter={setStatusFilter}
+            nameFilter={nameFilter}
+            setNameFilter={setNameFilter}
+            locationFilter={locationFilter}
+            setLocationFilter={setLocationFilter}
+            statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
           />
         )}
@@ -827,9 +727,7 @@ export default function AziendaPage() {
     <div className="app-container-full">
       <AziendaPageStyles />
       <header className="main-header-bar">
-        <div className="header-title">
-          EasyChain - Area Riservata
-        </div>
+        <div className="header-title">EasyChain - Area Riservata</div>
         <div className="wallet-button-container">
           <ConnectButton
             client={client}
@@ -847,15 +745,10 @@ export default function AziendaPage() {
           />
         </div>
       </header>
-      <main className="main-content-full">
-        {renderDashboardContent()}
-      </main>
+      <main className="main-content-full">{renderDashboardContent()}</main>
 
       {modal === "init" && (
-        <div
-          className="modal-overlay"
-          onClick={handleCloseModal}
-        >
+        <div className="modal-overlay" onClick={handleCloseModal}>
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
@@ -863,23 +756,13 @@ export default function AziendaPage() {
             <div className="modal-header">
               <h2>Nuova Iscrizione ({currentStep}/6)</h2>
             </div>
-            <div
-              className="modal-body"
-              style={{ minHeight: "350px" }}
-            >
-              {/* Contenuto del modal (invariato) */}
+            <div className="modal-body" style={{ minHeight: "350px" }}>
               {currentStep === 1 && (
                 <div>
-                  {" "}
                   <div className="form-group">
                     <label>
                       Nome Iscrizione{" "}
-                      <span
-                        style={{
-                          color: "red",
-                          fontWeight: "bold",
-                        }}
-                      >
+                      <span style={{ color: "red", fontWeight: "bold" }}>
                         * Obbligatorio
                       </span>
                     </label>
@@ -894,18 +777,15 @@ export default function AziendaPage() {
                     <small className="char-counter">
                       {formData.name.length} / 100
                     </small>
-                  </div>{" "}
+                  </div>
                   <div style={helpTextStyle}>
                     <p>
-                      <strong>
-                        ℹ️ Come scegliere il Nome Iscrizione
-                      </strong>
+                      <strong>ℹ️ Come scegliere il Nome Iscrizione</strong>
                     </p>
                     <p>
-                      Il Nome Iscrizione è un'etichetta
-                      descrittiva che ti aiuta a
-                      identificare in modo chiaro ciò che
-                      stai registrando on-chain. Ad esempio:
+                      Il Nome Iscrizione è un'etichetta descrittiva che ti aiuta
+                      a identificare in modo chiaro ciò che stai registrando
+                      on-chain. Ad esempio:
                     </p>
                     <ul
                       style={{
@@ -918,47 +798,34 @@ export default function AziendaPage() {
                         <em>Pomodori San Marzano 2025</em>
                       </li>
                       <li>
-                        Il numero di lotto:{" "}
-                        <em>Lotto LT1025 – Olio EVO 3L</em>
+                        Il numero di lotto: <em>Lotto LT1025 – Olio EVO 3L</em>
                       </li>
                       <li>
                         Il nome di un contratto:{" "}
-                        <em>
-                          Contratto fornitura COOP – Aprile
-                          2025
-                        </em>
+                        <em>Contratto fornitura COOP – Aprile 2025</em>
                       </li>
                       <li>
                         Una certificazione o audit:{" "}
-                        <em>
-                          Certificazione Bio ICEA 2025
-                        </em>
+                        <em>Certificazione Bio ICEA 2025</em>
                       </li>
                       <li>
                         Un riferimento amministrativo:{" "}
-                        <em>
-                          Ordine n.778 – Cliente NordItalia
-                        </em>
+                        <em>Ordine n.778 – Cliente NordItalia</em>
                       </li>
                     </ul>
                     <p style={{ marginTop: "1rem" }}>
-                      <strong>📌 Consiglio:</strong> scegli
-                      un nome breve ma significativo, che ti
-                      aiuti a ritrovare facilmente
+                      <strong>📌 Consiglio:</strong> scegli un nome breve ma
+                      significativo, che ti aiuti a ritrovare facilmente
                       l’iscrizione anche dopo mesi o anni.
                     </p>
-                  </div>{" "}
+                  </div>
                 </div>
               )}
               {currentStep === 2 && (
                 <div>
-                  {" "}
                   <div className="form-group">
                     <label>
-                      Descrizione{" "}
-                      <span style={{ color: "#6c757d" }}>
-                        Non obbligatorio
-                      </span>
+                      Descrizione <span style={{ color: "#6c757d" }}>Non obbligatorio</span>
                     </label>
                     <textarea
                       name="description"
@@ -971,29 +838,22 @@ export default function AziendaPage() {
                     <small className="char-counter">
                       {formData.description.length} / 500
                     </small>
-                  </div>{" "}
+                  </div>
                   <div style={helpTextStyle}>
                     <p>
-                      Inserisci una descrizione del
-                      prodotto, lotto, contratto o altro
-                      elemento principale. Fornisci tutte le
-                      informazioni essenziali per
-                      identificarlo chiaramente nella
-                      filiera o nel contesto
-                      dell’iscrizione.
+                      Inserisci una descrizione del prodotto, lotto, contratto o
+                      altro elemento principale. Fornisci tutte le informazioni
+                      essenziali per identificarlo chiaramente nella filiera o
+                      nel contesto dell’iscrizione.
                     </p>
-                  </div>{" "}
+                  </div>
                 </div>
               )}
               {currentStep === 3 && (
                 <div>
-                  {" "}
                   <div className="form-group">
                     <label>
-                      Luogo{" "}
-                      <span style={{ color: "#6c757d" }}>
-                        Non obbligatorio
-                      </span>
+                      Luogo <span style={{ color: "#6c757d" }}>Non obbligatorio</span>
                     </label>
                     <input
                       type="text"
@@ -1006,28 +866,22 @@ export default function AziendaPage() {
                     <small className="char-counter">
                       {formData.location.length} / 100
                     </small>
-                  </div>{" "}
+                  </div>
                   <div style={helpTextStyle}>
                     <p>
-                      Inserisci il luogo di origine o di
-                      produzione del prodotto o lotto. Può
-                      essere una città, una regione,
-                      un'azienda agricola o uno stabilimento
-                      specifico per identificare con
+                      Inserisci il luogo di origine o di produzione del prodotto
+                      o lotto. Può essere una città, una regione, un'azienda
+                      agricola o uno stabilimento specifico per identificare con
                       precisione dove è stato realizzato.
                     </p>
-                  </div>{" "}
+                  </div>
                 </div>
               )}
               {currentStep === 4 && (
                 <div>
-                  {" "}
                   <div className="form-group">
                     <label>
-                      Data{" "}
-                      <span style={{ color: "#6c757d" }}>
-                        Non obbligatorio
-                      </span>
+                      Data <span style={{ color: "#6c757d" }}>Non obbligatorio</span>
                     </label>
                     <input
                       type="date"
@@ -1037,25 +891,20 @@ export default function AziendaPage() {
                       className="form-input"
                       max={today}
                     />
-                  </div>{" "}
+                  </div>
                   <div style={helpTextStyle}>
                     <p>
-                      Inserisci una data, puoi utilizzare il
-                      giorno attuale o una data precedente
-                      alla conferma di questa Iscrizione.
+                      Inserisci una data, puoi utilizzare il giorno attuale o
+                      una data precedente alla conferma di questa Iscrizione.
                     </p>
-                  </div>{" "}
+                  </div>
                 </div>
               )}
               {currentStep === 5 && (
                 <div>
-                  {" "}
                   <div className="form-group">
                     <label>
-                      Immagine{" "}
-                      <span style={{ color: "#6c757d" }}>
-                        Non obbligatorio
-                      </span>
+                      Immagine <span style={{ color: "#6c757d" }}>Non obbligatorio</span>
                     </label>
                     <input
                       type="file"
@@ -1072,67 +921,50 @@ export default function AziendaPage() {
                         File: {selectedFile.name}
                       </p>
                     )}
-                  </div>{" "}
+                  </div>
                   <div style={helpTextStyle}>
                     <p>
-                      Carica un’immagine rappresentativa del
-                      prodotto, lotto, contratto, etc.
-                      Rispetta i formati e i limiti di peso.
+                      Carica un’immagine rappresentativa del prodotto, lotto,
+                      contratto, etc. Rispetta i formati e i limiti di peso.
                     </p>
                     <p style={{ marginTop: "10px" }}>
-                      <strong>Consiglio:</strong> Per una
-                      visualizzazione ottimale, usa
-                      un'immagine quadrata (formato 1:1).
+                      <strong>Consiglio:</strong> Per una visualizzazione
+                      ottimale, usa un'immagine quadrata (formato 1:1).
                     </p>
-                  </div>{" "}
+                  </div>
                 </div>
               )}
               {currentStep === 6 && (
                 <div>
-                  {" "}
-                  <h4>Riepilogo Dati</h4>{" "}
+                  <h4>Riepilogo Dati</h4>
                   <div className="recap-summary">
-                    {" "}
                     <p>
                       <strong>Nome:</strong>{" "}
-                      {truncateText(formData.name, 40) ||
-                        "Non specificato"}
-                    </p>{" "}
+                      {truncateText(formData.name, 40) || "Non specificato"}
+                    </p>
                     <p>
                       <strong>Descrizione:</strong>{" "}
-                      {truncateText(
-                        formData.description,
-                        60,
-                      ) || "Non specificata"}
-                    </p>{" "}
+                      {truncateText(formData.description, 60) ||
+                        "Non specificata"}
+                    </p>
                     <p>
                       <strong>Luogo:</strong>{" "}
-                      {truncateText(
-                        formData.location,
-                        40,
-                      ) || "Non specificato"}
-                    </p>{" "}
+                      {truncateText(formData.location, 40) || "Non specificato"}
+                    </p>
                     <p>
                       <strong>Data:</strong>{" "}
                       {formData.date
-                        ? formData.date
-                            .split("-")
-                            .reverse()
-                            .join("/")
+                        ? formData.date.split("-").reverse().join("/")
                         : "Non specificata"}
-                    </p>{" "}
+                    </p>
                     <p>
                       <strong>Immagine:</strong>{" "}
-                      {truncateText(
-                        selectedFile?.name || "",
-                        40,
-                      ) || "Nessuna"}
-                    </p>{" "}
-                  </div>{" "}
+                      {truncateText(selectedFile?.name || "", 40) || "Nessuna"}
+                    </p>
+                  </div>
                   <p>
-                    Vuoi confermare e registrare questi dati
-                    sulla blockchain?
-                  </p>{" "}
+                    Vuoi confermare e registrare questi dati sulla blockchain?
+                  </p>
                 </div>
               )}
             </div>
@@ -1160,10 +992,7 @@ export default function AziendaPage() {
                   Chiudi
                 </button>
                 {currentStep < 6 && (
-                  <button
-                    onClick={handleNextStep}
-                    className="web3-button"
-                  >
+                  <button onClick={handleNextStep} className="web3-button">
                     Avanti
                   </button>
                 )}
@@ -1173,9 +1002,7 @@ export default function AziendaPage() {
                     disabled={isProcessing}
                     className="web3-button"
                   >
-                    {isProcessing
-                      ? "Conferma..."
-                      : "Conferma e Registra"}
+                    {isProcessing ? "Conferma..." : "Conferma e Registra"}
                   </button>
                 )}
               </div>
@@ -1196,8 +1023,7 @@ export default function AziendaPage() {
           status={txResult.status}
           message={txResult.message}
           onClose={() => {
-            if (txResult.status === "success")
-              handleCloseModal();
+            if (txResult.status === "success") handleCloseModal();
             setTxResult(null);
           }}
         />
