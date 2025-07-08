@@ -10,6 +10,7 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
+  decodeEventLog, // Consolidato qui
 } from "thirdweb";
 import { decodeEventLog } from "thirdweb/utils"; // Percorso corretto
 import { polygon } from "thirdweb/chains";
