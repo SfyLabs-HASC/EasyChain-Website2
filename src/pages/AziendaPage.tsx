@@ -454,14 +454,14 @@ export default function AziendaPage() {
 
     // Per ora lasciamo la tabella vuota
     setAllBatches([]);
-
   } catch (error) {
-    console.error("Errore nel caricare i lotti:", error);
+    console.error("Errore nel caricare i lotti da Insight:", error);
     setAllBatches([]);
   } finally {
     setIsLoadingBatches(false);
   }
 };
+
 
 
       // Ora decodifichiamo i dati di questi eventi. Questa parte è complessa e richiede una libreria di decoding.
