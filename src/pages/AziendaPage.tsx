@@ -430,40 +430,39 @@ export default function AziendaPage() {
   const [currentStep, setCurrentStep] = useState(1);
 
   const fetchAllBatches = async () => {
-    if (!account?.address) return;
-    setIsLoadingBatches(true);
+  if (!account?.address) return;
+  setIsLoadingBatches(true);
 
-    // Nuovo approccio suggerito dall'utente
-    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events/${CONTRACT_ADDRESS}`;
-    
-    const params = new URLSearchParams({
-      chain_id: polygon.id.toString(),
-      // 'filter_block_timestamp_gte': '1744193808', // Omesso per semplicità
-      filter_address: account.address, // Filtra per l'indirizzo del wallet loggato
-      limit: "1000",
-    });
+  try {
+    const response = await fetch(`/api/thirdweb-insight?address=${account.address}`);
 
-    try {
-      const response = await fetch(`${insightUrl}?${params.toString()}`, {
-        method: "GET",
-        headers: {
-          "x-thirdweb-client-id": CLIENT_ID,
-        },
-      });
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Dettagli errore API proxy:", errorData);
+      throw new Error(`Errore API di Insight Proxy: ${response.status} ${response.statusText}`);
+    }
 
-      if (!response.ok) {
-        const errorData = await response.text(); // Leggiamo come testo per sicurezza
-        console.error("Dettagli errore API da Insight:", errorData);
-        throw new Error(`Errore API di Insight: ${response.status} ${response.statusText}`);
-      }
+    const data = await response.json();
 
-      const data = await response.json();
-      
-      // Poiché questo endpoint restituisce TUTTI gli eventi, filtriamo qui solo quelli che ci interessano
-      const batchEvents = data.data.filter(
-        (event: any) =>
-          event.topics[0] === '0xb95bee840a4d2ee2f2c80e8110610b7904eb4e773db7b715a8ef848e6848f9be' // Questo è l'hash dell'evento BatchInitialized
-      );
+    // Filtra solo gli eventi BatchInitialized
+    const batchEvents = data.data.filter(
+      (event: any) =>
+        event.topics[0] === "0xb95bee840a4d2ee2f2c80e8110610b7904eb4e773db7b715a8ef848e6848f9be"
+    );
+
+    console.log("Eventi 'BatchInitialized' ricevuti:", batchEvents);
+
+    // Per ora lasciamo la tabella vuota
+    setAllBatches([]);
+
+  } catch (error) {
+    console.error("Errore nel caricare i lotti:", error);
+    setAllBatches([]);
+  } finally {
+    setIsLoadingBatches(false);
+  }
+};
+
 
       // Ora decodifichiamo i dati di questi eventi. Questa parte è complessa e richiede una libreria di decoding.
       // Per ORA, mostriamo i dati grezzi per confermare che la chiamata funzioni.
