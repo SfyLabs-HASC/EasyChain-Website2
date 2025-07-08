@@ -11,7 +11,6 @@ import {
   getContract,
   prepareContractCall,
 } from "thirdweb";
-import { decodeEventLog } from "thirdweb/extensions/events"; // <-- PERCORSO CORRETTO
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -19,7 +18,6 @@ import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
 
-// --- Stili CSS (invariati) ---
 const AziendaPageStyles = () => (
   <style>{`
     .app-container-full { padding: 0 2rem; }
@@ -440,43 +438,26 @@ export default function AziendaPage() {
         throw new Error(`Errore API di Insight Proxy: ${response.status} ${response.statusText}`);
       }
 
-      const apiResult = await response.json();
+      const decodedEvents = await response.json();
 
-      const batchInitializedEventAbi = abi.find(
-        (item) => item.type === 'event' && item.name === 'BatchInitialized'
+      const formattedBatches: BatchData[] = decodedEvents.map((event: any) => ({
+        id: event.batchId.toString(),
+        batchId: BigInt(event.batchId),
+        name: event.name,
+        description: event.description,
+        date: event.date,
+        location: event.location,
+        isClosed: event.isClosed,
+      }));
+
+      setAllBatches(
+        formattedBatches.sort(
+          (a, b) => Number(b.batchId) - Number(a.batchId)
+        )
       );
-      if (!batchInitializedEventAbi) {
-        throw new Error("Definizione ABI per BatchInitialized non trovata.");
-      }
-      
-      const batchInitializedEventTopic = "0xb95bee840a4d2ee2f2c80e8110610b7904eb4e773db7b715a8ef848e6848f9be";
-      const batchEvents = apiResult.data.filter(
-        (event: any) => event.topics[0] === batchInitializedEventTopic
-      );
-
-      const formattedBatches = batchEvents.map((event: any) => {
-          const decodedLog = decodeEventLog({
-              // @ts-ignore
-              event: batchInitializedEventAbi,
-              data: event.data,
-              topics: event.topics,
-          });
-          const args = decodedLog.args as any;
-          return {
-              id: args.batchId.toString(),
-              batchId: BigInt(args.batchId),
-              name: args.name,
-              description: args.description,
-              date: args.date,
-              location: args.location,
-              isClosed: args.isClosed,
-          };
-      });
-
-      setAllBatches(formattedBatches.sort((a, b) => Number(b.batchId) - Number(a.batchId)));
 
     } catch (error) {
-      console.error("Errore nel caricare i lotti tramite proxy:", error);
+      console.error("Errore nel caricare i lotti da Insight:", error);
       setAllBatches([]);
     } finally {
       setIsLoadingBatches(false);
@@ -741,7 +722,12 @@ export default function AziendaPage() {
               <h2>Nuova Iscrizione ({currentStep}/6)</h2>
             </div>
             <div className="modal-body" style={{ minHeight: "350px" }}>
-                {/* Contenuto del Modal */}
+              {currentStep === 1 && ( <div> <div className="form-group"> <label> Nome Iscrizione{" "} <span style={{ color: "red", fontWeight: "bold" }}> * Obbligatorio </span> </label> <input type="text" name="name" value={formData.name} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.name.length} / 100 </small> </div> <div style={helpTextStyle}> <p> <strong>ℹ️ Come scegliere il Nome Iscrizione</strong> </p> <p> Il Nome Iscrizione è un'etichetta descrittiva che ti aiuta a identificare in modo chiaro ciò che stai registrando on-chain. Ad esempio: </p> <ul style={{ textAlign: "left", paddingLeft: "20px", }} > <li> Il nome di un prodotto o varietà:{" "} <em>Pomodori San Marzano 2025</em> </li> <li> Il numero di lotto: <em>Lotto LT1025 – Olio EVO 3L</em> </li> <li> Il nome di un contratto:{" "} <em>Contratto fornitura COOP – Aprile 2025</em> </li> <li> Una certificazione o audit:{" "} <em>Certificazione Bio ICEA 2025</em> </li> <li> Un riferimento amministrativo:{" "} <em>Ordine n.778 – Cliente NordItalia</em> </li> </ul> <p style={{ marginTop: "1rem" }}> <strong>📌 Consiglio:</strong> scegli un nome breve ma significativo, che ti aiuti a ritrovare facilmente l’iscrizione anche dopo mesi o anni. </p> </div> </div> )}
+              {currentStep === 2 && ( <div> <div className="form-group"> <label> Descrizione <span style={{ color: "#6c757d" }}>Non obbligatorio</span> </label> <textarea name="description" value={formData.description} onChange={handleModalInputChange} className="form-input" rows={4} maxLength={500} ></textarea> <small className="char-counter"> {formData.description.length} / 500 </small> </div> <div style={helpTextStyle}> <p> Inserisci una descrizione del prodotto, lotto, contratto o altro elemento principale. Fornisci tutte le informazioni essenziali per identificarlo chiaramente nella filiera o nel contesto dell’iscrizione. </p> </div> </div> )}
+              {currentStep === 3 && ( <div> <div className="form-group"> <label> Luogo <span style={{ color: "#6c757d" }}>Non obbligatorio</span> </label> <input type="text" name="location" value={formData.location} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.location.length} / 100 </small> </div> <div style={helpTextStyle}> <p> Inserisci il luogo di origine o di produzione del prodotto o lotto. Può essere una città, una regione, un'azienda agricola o uno stabilimento specifico per identificare con precisione dove è stato realizzato. </p> </div> </div> )}
+              {currentStep === 4 && ( <div> <div className="form-group"> <label> Data <span style={{ color: "#6c757d" }}>Non obbligatorio</span> </label> <input type="date" name="date" value={formData.date} onChange={handleModalInputChange} className="form-input" max={today} /> </div> <div style={helpTextStyle}> <p> Inserisci una data, puoi utilizzare il giorno attuale o una data precedente alla conferma di questa Iscrizione. </p> </div> </div> )}
+              {currentStep === 5 && ( <div> <div className="form-group"> <label> Immagine <span style={{ color: "#6c757d" }}>Non obbligatorio</span> </label> <input type="file" name="image" onChange={handleFileChange} className="form-input" accept="image/png, image/jpeg, image/webp" /> <small style={{ marginTop: "4px" }}> Formati: PNG, JPG, WEBP. Max: 5 MB. </small> {selectedFile && ( <p className="file-name-preview"> File: {selectedFile.name} </p> )} </div> <div style={helpTextStyle}> <p> Carica un’immagine rappresentativa del prodotto, lotto, contratto, etc. Rispetta i formati e i limiti di peso. </p> <p style={{ marginTop: "10px" }}> <strong>Consiglio:</strong> Per una visualizzazione ottimale, usa un'immagine quadrata (formato 1:1). </p> </div> </div> )}
+              {currentStep === 6 && ( <div> <h4>Riepilogo Dati</h4> <div className="recap-summary"> <p> <strong>Nome:</strong>{" "} {truncateText(formData.name, 40) || "Non specificato"} </p> <p> <strong>Descrizione:</strong>{" "} {truncateText(formData.description, 60) || "Non specificata"} </p> <p> <strong>Luogo:</strong>{" "} {truncateText(formData.location, 40) || "Non specificato"} </p> <p> <strong>Data:</strong>{" "} {formData.date ? formData.date.split("-").reverse().join("/") : "Non specificata"} </p> <p> <strong>Immagine:</strong>{" "} {truncateText(selectedFile?.name || "", 40) || "Nessuna"} </p> </div> <p> Vuoi confermare e registrare questi dati sulla blockchain? </p> </div> )}
             </div>
             <div
               className="modal-footer"
