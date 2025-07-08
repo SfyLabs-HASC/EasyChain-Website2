@@ -66,7 +66,7 @@ const AziendaPageStyles = () => (
   `}</style>
 );
 
-const CLIENT_ID = "eda8282e23ee12f17d8d1d20ef8aaa83";
+const CLIENT_ID = "e40dfd747fabedf48c5837fb79caf2eb";
 const CONTRACT_ADDRESS = "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
