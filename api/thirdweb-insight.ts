@@ -1,10 +1,12 @@
 // FILE: /pages/api/thirdweb-insight.ts
-export default async function handler(req, res) {
-  const { address } = req.query;
+import { decodeEventLog } from "thirdweb"; // L'import qui sul backend funziona diversamente e non dovrebbe fallire
+import { supplyChainABI as abi } from "../../src/abi/contractABI";
 
+export default async function handler(req, res) {
   if (!process.env.THIRDWEB_SECRET_KEY) {
     return res.status(500).json({ error: "Variabile d'ambiente THIRDWEB_SECRET_KEY non trovata." });
   }
+  const { address } = req.query;
   if (!address) {
     return res.status(400).json({ error: "Parametro 'address' mancante." });
   }
@@ -21,22 +23,24 @@ export default async function handler(req, res) {
 
   try {
     const apiResponse = await fetch(`${insightUrl}?${params.toString()}`, {
-      headers: {
-        "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
-      },
+      headers: { "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}` },
+    });
+    
+    const data = await apiResponse.json();
+    if (!apiResponse.ok) return res.status(apiResponse.status).json(data);
+    
+    const batchInitializedEventAbi = abi.find(item => item.type === 'event' && item.name === 'BatchInitialized');
+    if (!batchInitializedEventAbi) throw new Error("ABI for BatchInitialized not found.");
+
+    const decodedEvents = data.result.map((event: any) => {
+        const decodedLog = decodeEventLog({ event: batchInitializedEventAbi, data: event.data, topics: event.topics });
+        return decodedLog.args;
     });
 
-    const data = await apiResponse.json();
-
-    if (!apiResponse.ok) {
-      return res.status(apiResponse.status).json(data);
-    }
-    
-    // Inoltriamo i dati grezzi (data.result) al frontend, che si occuperà di decodificarli
-    res.status(200).json(data.result);
+    res.status(200).json(decodedEvents);
 
   } catch (error) {
     console.error("Errore nel proxy API:", error);
-    res.status(500).json({ error: "Errore interno del server proxy." });
+    res.status(500).json({ error: "Errore interno del server." });
   }
 }
