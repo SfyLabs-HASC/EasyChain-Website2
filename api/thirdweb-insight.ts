@@ -1,9 +1,26 @@
 // FILE: /pages/api/thirdweb-insight.ts
 import { decodeEventLog } from "thirdweb";
-import { supplyChainABI as abi } from "../../src/abi/contractABI";
+
+// Definiamo qui solo la parte di ABI che ci serve, rendendo il file indipendente
+const batchInitializedEventAbi = {
+  "anonymous": false,
+  "inputs": [
+    { "indexed": true, "internalType": "address", "name": "contributor", "type": "address" },
+    { "indexed": true, "internalType": "uint256", "name": "batchId", "type": "uint256" },
+    { "indexed": false, "internalType": "string", "name": "name", "type": "string" },
+    { "indexed": false, "internalType": "string", "name": "description", "type": "string" },
+    { "indexed": false, "internalType": "string", "name": "date", "type": "string" },
+    { "indexed": false, "internalType": "string", "name": "location", "type": "string" },
+    { "indexed": false, "internalType": "string", "name": "imageIpfsHash", "type": "string" },
+    { "indexed": false, "internalType": "string", "name": "contributorName", "type": "string" },
+    { "indexed": false, "internalType": "bool", "name": "isClosed", "type": "bool" }
+  ],
+  "name": "BatchInitialized",
+  "type": "event"
+};
+
 
 export default async function handler(req, res) {
-  // Ora controlliamo il CLIENT_ID, non la Secret Key
   if (!process.env.THIRDWEB_CLIENT_ID) {
     console.error("THIRDWEB_CLIENT_ID non è configurata.");
     return res.status(500).json({ error: "Configurazione del server incompleta." });
@@ -28,7 +45,6 @@ export default async function handler(req, res) {
     const apiResponse = await fetch(`${insightUrl}?${params.toString()}`, {
       method: 'GET',
       headers: {
-        // MODIFICA CRUCIALE: Usiamo il Client ID come richiesto dall'errore
         "x-thirdweb-client-id": process.env.THIRDWEB_CLIENT_ID,
         "Content-Type": "application/json",
       },
@@ -41,10 +57,6 @@ export default async function handler(req, res) {
       return res.status(apiResponse.status).json(data);
     }
     
-    // Il resto della logica per decodificare e inviare i dati rimane invariato...
-    const batchInitializedEventAbi = abi.find(item => item.type === 'event' && item.name === 'BatchInitialized');
-    if (!batchInitializedEventAbi) throw new Error("ABI for BatchInitialized not found.");
-
     const decodedEvents = data.result.map((event: any) => {
         const decodedLog = decodeEventLog({
             event: batchInitializedEventAbi,
