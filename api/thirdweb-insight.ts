@@ -1,13 +1,14 @@
 // FILE: /pages/api/thirdweb-insight.ts
+import { decodeEventLog } from "thirdweb";
+import { supplyChainABI as abi } from "../../src/abi/contractABI";
 
 export default async function handler(req, res) {
-  // Controlla che la Secret Key sia impostata nelle variabili d'ambiente di Vercel
-  if (!process.env.THIRDWEB_SECRET_KEY) {
-    console.error("THIRDWEB_SECRET_KEY non è configurata.");
+  // Ora controlliamo il CLIENT_ID, non la Secret Key
+  if (!process.env.THIRDWEB_CLIENT_ID) {
+    console.error("THIRDWEB_CLIENT_ID non è configurata.");
     return res.status(500).json({ error: "Configurazione del server incompleta." });
   }
 
-  // Prende l'indirizzo del wallet dalla richiesta del frontend
   const { address } = req.query;
   if (!address) {
     return res.status(400).json({ error: "Parametro 'address' mancante." });
@@ -24,25 +25,36 @@ export default async function handler(req, res) {
   });
 
   try {
-    // Il nostro backend chiama l'API di Thirdweb usando la Secret Key
-    const response = await fetch(`${insightUrl}?${params.toString()}`, {
-      method: "GET",
+    const apiResponse = await fetch(`${insightUrl}?${params.toString()}`, {
+      method: 'GET',
       headers: {
-        "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
+        // MODIFICA CRUCIALE: Usiamo il Client ID come richiesto dall'errore
+        "x-thirdweb-client-id": process.env.THIRDWEB_CLIENT_ID,
         "Content-Type": "application/json",
       },
     });
 
-    const data = await response.json();
+    const data = await apiResponse.json();
 
-    // Se la risposta non è OK, inoltra l'errore
-    if (!response.ok) {
+    if (!apiResponse.ok) {
       console.error("Errore dall'API di Thirdweb:", data);
-      return res.status(response.status).json(data);
+      return res.status(apiResponse.status).json(data);
     }
     
-    // Inoltra la risposta di successo al frontend
-    res.status(200).json(data);
+    // Il resto della logica per decodificare e inviare i dati rimane invariato...
+    const batchInitializedEventAbi = abi.find(item => item.type === 'event' && item.name === 'BatchInitialized');
+    if (!batchInitializedEventAbi) throw new Error("ABI for BatchInitialized not found.");
+
+    const decodedEvents = data.result.map((event: any) => {
+        const decodedLog = decodeEventLog({
+            event: batchInitializedEventAbi,
+            data: event.data,
+            topics: event.topics,
+        });
+        return decodedLog.args;
+    });
+
+    res.status(200).json(decodedEvents);
 
   } catch (error) {
     console.error("Errore nel proxy API di Insight:", error);
