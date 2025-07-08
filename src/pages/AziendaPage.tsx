@@ -10,8 +10,8 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
-  decodeEventLog,
 } from "thirdweb";
+import { decodeEventLog } from "thirdweb/utils"; // Percorso corretto
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
