@@ -1,10 +1,11 @@
 // FILE: /pages/api/thirdweb-insight.ts
+import { decodeEventLog } from "thirdweb";
+import { supplyChainABI as abi } from "../../src/abi/contractABI";
 
 export default async function handler(req, res) {
-  // Controlla che la Secret Key sia impostata
-  if (!process.env.THIRDWEB_SECRET_KEY) {
-    console.error("THIRDWEB_SECRET_KEY non è configurata.");
-    return res.status(500).json({ error: "Configurazione del server incompleta." });
+  // Ora il backend usa il CLIENT_ID, preso dalle variabili d'ambiente
+  if (!process.env.THIRDWEB_CLIENT_ID) {
+    return res.status(500).json({ error: "Configurazione del server incompleta: THIRDWEB_CLIENT_ID mancante." });
   }
 
   const { address } = req.query;
@@ -24,20 +25,37 @@ export default async function handler(req, res) {
 
   try {
     const apiResponse = await fetch(`${insightUrl}?${params.toString()}`, {
+      method: 'GET',
       headers: {
-        "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
+        // MODIFICA CRUCIALE: Usiamo il Client ID come richiesto dall'errore
+        "x-thirdweb-client-id": process.env.THIRDWEB_CLIENT_ID,
+        "Content-Type": "application/json",
       },
     });
 
-    const data = await apiResponse.json();
-
     if (!apiResponse.ok) {
-      console.error("Errore dall'API di Thirdweb:", data);
-      return res.status(apiResponse.status).json(data);
+      const errorText = await apiResponse.text();
+      console.error("Errore ricevuto dall'API di Thirdweb:", errorText);
+      return res.status(apiResponse.status).json({ error: `API Error: ${errorText}` });
     }
     
-    // Inoltriamo i dati grezzi (data.result) così come sono
-    res.status(200).json(data.result);
+    const data = await apiResponse.json();
+    
+    const batchInitializedEventAbi = abi.find(item => item.type === 'event' && item.name === 'BatchInitialized');
+    if (!batchInitializedEventAbi) {
+      throw new Error("ABI for BatchInitialized not found.");
+    }
+
+    const decodedEvents = data.result.map((event: any) => {
+        const decodedLog = decodeEventLog({
+            event: batchInitializedEventAbi,
+            data: event.data,
+            topics: event.topics,
+        });
+        return decodedLog.args;
+    });
+
+    res.status(200).json(decodedEvents);
 
   } catch (error) {
     console.error("Errore nel proxy API di Insight:", error);
