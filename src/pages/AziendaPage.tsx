@@ -10,9 +10,8 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
+  decodeEventLog,
 } from "thirdweb";
-// Importazione corretta per decodeEventLog
-import { decodeEventLog } from "thirdweb/extensions/events";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -20,7 +19,7 @@ import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
 
-// --- Stili CSS (invariati) ---
+// --- Inline CSS Styles ---
 const AziendaPageStyles = () => (
   <style>{`
     .app-container-full { padding: 0 2rem; }
@@ -467,8 +466,6 @@ export default function AziendaPage() {
         throw new Error("Definizione ABI per BatchInitialized non trovata.");
       }
 
-      // La risposta da Insight è già filtrata dal server, non serve filtrare di nuovo qui.
-      // Semplicemente decodifichiamo ogni evento ricevuto.
       const formattedBatches = data.result.map((event: any) => {
           const decodedLog = decodeEventLog({
               // @ts-ignore
