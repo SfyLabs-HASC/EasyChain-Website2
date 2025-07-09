@@ -1,11 +1,13 @@
 // FILE: /pages/api/thirdweb-insight.ts
-import { decodeEventLog } from "thirdweb"; // L'import qui sul backend funziona diversamente e non dovrebbe fallire
-import { supplyChainABI as abi } from "../../src/abi/contractABI";
 
 export default async function handler(req, res) {
+  // Controlla che la Secret Key sia impostata nelle variabili d'ambiente di Vercel
   if (!process.env.THIRDWEB_SECRET_KEY) {
-    return res.status(500).json({ error: "Variabile d'ambiente THIRDWEB_SECRET_KEY non trovata." });
+    console.error("THIRDWEB_SECRET_KEY non è configurata.");
+    return res.status(500).json({ error: "Configurazione del server incompleta." });
   }
+
+  // Prende l'indirizzo del wallet dalla richiesta del frontend
   const { address } = req.query;
   if (!address) {
     return res.status(400).json({ error: "Parametro 'address' mancante." });
@@ -22,25 +24,28 @@ export default async function handler(req, res) {
   });
 
   try {
-    const apiResponse = await fetch(`${insightUrl}?${params.toString()}`, {
-      headers: { "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}` },
-    });
-    
-    const data = await apiResponse.json();
-    if (!apiResponse.ok) return res.status(apiResponse.status).json(data);
-    
-    const batchInitializedEventAbi = abi.find(item => item.type === 'event' && item.name === 'BatchInitialized');
-    if (!batchInitializedEventAbi) throw new Error("ABI for BatchInitialized not found.");
-
-    const decodedEvents = data.result.map((event: any) => {
-        const decodedLog = decodeEventLog({ event: batchInitializedEventAbi, data: event.data, topics: event.topics });
-        return decodedLog.args;
+    // Il nostro backend chiama l'API di Thirdweb usando la Secret Key
+    const response = await fetch(`${insightUrl}?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
     });
 
-    res.status(200).json(decodedEvents);
+    const data = await response.json();
+
+    // Se la risposta non è OK, inoltra l'errore
+    if (!response.ok) {
+      console.error("Errore dall'API di Thirdweb:", data);
+      return res.status(response.status).json(data);
+    }
+    
+    // Inoltra la risposta di successo al frontend
+    res.status(200).json(data);
 
   } catch (error) {
-    console.error("Errore nel proxy API:", error);
+    console.error("Errore nel proxy API di Insight:", error);
     res.status(500).json({ error: "Errore interno del server." });
   }
 }
