@@ -21,13 +21,14 @@ export default async function handler(req, res) {
   });
 
   try {
-    const response = await fetch(`${insightUrl}?${params.toString()}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
+   const response = await fetch(`${insightUrl}?${params.toString()}`, {
+  method: "GET",
+  headers: {
+    "x-client-id": process.env.THIRDWEB_CLIENT_ID!,
+    "Content-Type": "application/json",
+  },
+});
+
 
     const raw = await response.text();
 
