@@ -1,38 +1,27 @@
-// FILE: /pages/api/thirdweb-insight.ts
-
-import type { NextApiRequest, NextApiResponse } from "next";
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // 1. Controllo della chiave segreta
-  if (!process.env.THIRDWEB_SECRET_KEY) {
-    console.error("❌ THIRDWEB_SECRET_KEY non è configurata.");
-    return res.status(500).json({ error: "Configurazione del server incompleta." });
-  }
-
-  // 2. Controllo dell'indirizzo passato nella query
+export default async function handler(req, res) {
   const { address } = req.query;
-  if (!address || typeof address !== "string") {
-    return res.status(400).json({ error: "Parametro 'address' mancante o non valido." });
+
+  if (!address) {
+    return res.status(400).json({ error: "Parametro 'address' mancante." });
   }
 
-  // 3. Dati di configurazione
+  if (!process.env.THIRDWEB_SECRET_KEY) {
+    console.error("THIRDWEB_SECRET_KEY non definita.");
+    return res.status(500).json({ error: "Chiave segreta mancante." });
+  }
+
   const CONTRACT_ADDRESS = "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
-  const EVENT_SIGNATURE = "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)";
-  const BASE_URL = `https://polygon.insight.thirdweb.com/v1/events`;
+  const TOPIC0 = "0xdee773e2df2e7dd4c0e6656a2a6794ebd421a24525ff20b8cf9c01b1ac5a4186"; // hash dell'evento
+  const insightUrl = "https://polygon.insight.thirdweb.com/v1/events";
 
   const params = new URLSearchParams({
     contract_address: CONTRACT_ADDRESS,
-    event_signature: EVENT_SIGNATURE,
-    "filters[contributor]": address,
+    topic0: TOPIC0,
     limit: "1000",
   });
 
-  const fullUrl = `${BASE_URL}?${params.toString()}`;
-  console.log("ℹ️ Insight URL chiamata:", fullUrl);
-
   try {
-    // 4. Chiamata API verso Insight
-    const response = await fetch(fullUrl, {
+    const response = await fetch(`${insightUrl}?${params.toString()}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
@@ -40,29 +29,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    // 5. Tentativo di parsing JSON (o fallback a raw text)
-    let data: any;
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      const raw = await response.text();
-      console.error("❌ Errore parsing JSON dalla risposta Insight:", raw);
-      return res.status(500).json({
-        error: "Errore parsing JSON dalla risposta Insight.",
-        raw,
-      });
-    }
+    const data = await response.json();
 
-    // 6. Se Insight risponde con errore (es. evento non trovato)
     if (!response.ok) {
-      console.error("❌ Errore dall'API Insight:", data);
-      return res.status(response.status).json(data);
+      console.error("Errore Insight:", data);
+      return res.status(response.status).json({ error: "Insight API error", details: data });
     }
 
-    // 7. Tutto OK
-    return res.status(200).json(data);
-  } catch (error: any) {
-    console.error("❌ Errore generico nella chiamata Insight:", error);
+    // Filtro eventi per address (se presente in contributor)
+    const events = data.events?.filter((event) => {
+      const contributor = event?.decoded?.contributor || event?.data?.contributor;
+      return contributor?.toLowerCase() === address.toLowerCase();
+    }) || [];
+
+    return res.status(200).json({ events });
+  } catch (error) {
+    console.error("Errore server:", error);
     return res.status(500).json({ error: "Errore interno del server." });
   }
 }
