@@ -430,46 +430,38 @@ export default function AziendaPage() {
   setIsLoadingBatches(true);
 
   try {
-    // ---- PASSO 1: Esegui la chiamata SENZA il campo 'filters' ----
-    console.log("Tentativo di fetch degli eventi senza filtri...");
-    const allEvents = await getContractEvents({
-      contract,
-      eventName: "BatchInitialized",
-      // Il campo 'filters' è stato completamente rimosso per questo test.
-    });
-    console.log("Eventi ricevuti con successo:", allEvents);
+    const response = await fetch(`/api/thirdweb-insight?address=${account.address}`);
+    const json = await response.json();
 
+    if (!response.ok) {
+      throw new Error(json.error || "Errore generico dal server Insight");
+    }
 
-    // ---- PASSO 2: Filtra i risultati manualmente nel frontend ----
-    const userEvents = allEvents.filter(
-      (event) => event.args.contributor.toLowerCase() === account.address.toLowerCase()
-    );
+    if (!Array.isArray(json.events)) {
+      throw new Error("Risposta Insight non valida o mancano eventi.");
+    }
 
-
-    // ---- PASSO 3: Continua con la logica di mappatura e ordinamento ----
-    const formattedBatches: BatchData[] = userEvents.map((event: any) => ({
-      id: event.args.batchId.toString(),
-      batchId: BigInt(event.args.batchId),
-      name: event.args.name,
-      description: event.args.description,
-      date: event.args.date,
-      location: event.args.location,
-      isClosed: event.args.isClosed,
+    const userEvents = json.events.map((event: any) => ({
+      id: event.data.batchId,
+      batchId: BigInt(event.data.batchId),
+      name: event.data.name,
+      description: event.data.description,
+      date: event.data.date,
+      location: event.data.location,
+      isClosed: event.data.isClosed,
     }));
 
     setAllBatches(
-      formattedBatches.sort(
-        (a, b) => Number(b.batchId) - Number(a.batchId)
-      )
+      userEvents.sort((a, b) => Number(b.batchId) - Number(a.batchId))
     );
-
   } catch (error) {
-    console.error("Errore dettagliato da getContractEvents:", error);
+    console.error("Errore durante il fetch da Insight:", error);
     setAllBatches([]);
   } finally {
     setIsLoadingBatches(false);
   }
 };
+
 
   useEffect(() => {
     if (account?.address) {

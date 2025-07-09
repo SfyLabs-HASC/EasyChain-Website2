@@ -1,51 +1,68 @@
 // FILE: /pages/api/thirdweb-insight.ts
 
-export default async function handler(req, res) {
-  // Controlla che la Secret Key sia impostata nelle variabili d'ambiente di Vercel
+import type { NextApiRequest, NextApiResponse } from "next";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // 1. Controllo della chiave segreta
   if (!process.env.THIRDWEB_SECRET_KEY) {
-    console.error("THIRDWEB_SECRET_KEY non è configurata.");
+    console.error("❌ THIRDWEB_SECRET_KEY non è configurata.");
     return res.status(500).json({ error: "Configurazione del server incompleta." });
   }
 
-  // Prende l'indirizzo del wallet dalla richiesta del frontend
+  // 2. Controllo dell'indirizzo passato nella query
   const { address } = req.query;
-  if (!address) {
-    return res.status(400).json({ error: "Parametro 'address' mancante." });
+  if (!address || typeof address !== "string") {
+    return res.status(400).json({ error: "Parametro 'address' mancante o non valido." });
   }
 
+  // 3. Dati di configurazione
   const CONTRACT_ADDRESS = "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
-  const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
-  
+  const EVENT_SIGNATURE = "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)";
+  const BASE_URL = `https://polygon.insight.thirdweb.com/v1/events`;
+
   const params = new URLSearchParams({
     contract_address: CONTRACT_ADDRESS,
-    event_signature: "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
-    "filters[contributor]": address as string,
+    event_signature: EVENT_SIGNATURE,
+    "filters[contributor]": address,
     limit: "1000",
   });
 
+  const fullUrl = `${BASE_URL}?${params.toString()}`;
+  console.log("ℹ️ Insight URL chiamata:", fullUrl);
+
   try {
-    // Il nostro backend chiama l'API di Thirdweb usando la Secret Key
-    const response = await fetch(`${insightUrl}?${params.toString()}`, {
+    // 4. Chiamata API verso Insight
+    const response = await fetch(fullUrl, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
     });
 
-    const data = await response.json();
+    // 5. Tentativo di parsing JSON (o fallback a raw text)
+    let data: any;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      const raw = await response.text();
+      console.error("❌ Errore parsing JSON dalla risposta Insight:", raw);
+      return res.status(500).json({
+        error: "Errore parsing JSON dalla risposta Insight.",
+        raw,
+      });
+    }
 
-    // Se la risposta non è OK, inoltra l'errore
+    // 6. Se Insight risponde con errore (es. evento non trovato)
     if (!response.ok) {
-      console.error("Errore dall'API di Thirdweb:", data);
+      console.error("❌ Errore dall'API Insight:", data);
       return res.status(response.status).json(data);
     }
-    
-    // Inoltra la risposta di successo al frontend
-    res.status(200).json(data);
 
-  } catch (error) {
-    console.error("Errore nel proxy API di Insight:", error);
-    res.status(500).json({ error: "Errore interno del server." });
+    // 7. Tutto OK
+    return res.status(200).json(data);
+  } catch (error: any) {
+    console.error("❌ Errore generico nella chiamata Insight:", error);
+    return res.status(500).json({ error: "Errore interno del server." });
   }
 }
