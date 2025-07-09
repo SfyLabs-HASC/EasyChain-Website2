@@ -5,9 +5,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Parametro 'address' mancante." });
   }
 
-  if (!process.env.THIRDWEB_CLIENT_ID) {
-    console.error("THIRDWEB_CLIENT_ID mancante.");
-    return res.status(500).json({ error: "Client ID mancante." });
+  if (!process.env.THIRDWEB_CLIENT_ID || !process.env.THIRDWEB_SECRET_KEY) {
+    console.error("THIRDWEB_CLIENT_ID o SECRET_KEY mancanti.");
+    return res.status(500).json({ error: "Client ID o Secret Key mancanti." });
   }
 
   const CONTRACT_ADDRESS = "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
@@ -27,11 +27,12 @@ export default async function handler(req, res) {
       method: "GET",
       headers: {
         "x-client-id": process.env.THIRDWEB_CLIENT_ID,
+        Authorization: `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
     });
 
-    const text = await response.text(); // perché può non essere JSON se errore
+    const text = await response.text();
     let data;
 
     try {
