@@ -441,15 +441,18 @@ export default function AziendaPage() {
       throw new Error("Risposta Insight non valida o mancano eventi.");
     }
 
-    const userEvents = json.events.map((event: any) => ({
-      id: event.data.batchId,
-      batchId: BigInt(event.data.batchId),
-      name: event.data.name,
-      description: event.data.description,
-      date: event.data.date,
-      location: event.data.location,
-      isClosed: event.data.isClosed,
-    }));
+    const userEvents = json.events.map((event) => {
+      const decoded = event.decoded || event.data || {};
+      return {
+        id: decoded.batchId?.toString() || "",
+        batchId: BigInt(decoded.batchId || 0),
+        name: decoded.name || "",
+        description: decoded.description || "",
+        date: decoded.date || "",
+        location: decoded.location || "",
+        isClosed: decoded.isClosed || false,
+      };
+    });
 
     setAllBatches(
       userEvents.sort((a, b) => Number(b.batchId) - Number(a.batchId))
@@ -461,6 +464,7 @@ export default function AziendaPage() {
     setIsLoadingBatches(false);
   }
 };
+
 
 
   useEffect(() => {
