@@ -426,43 +426,50 @@ export default function AziendaPage() {
   const [currentStep, setCurrentStep] = useState(1);
 
   const fetchAllBatches = async () => {
-    if (!account?.address) return;
-    setIsLoadingBatches(true);
+  if (!account?.address) return;
+  setIsLoadingBatches(true);
 
-    try {
-      const response = await fetch(`/api/thirdweb-insight?address=${account.address}`);
+  try {
+    // ---- PASSO 1: Esegui la chiamata SENZA il campo 'filters' ----
+    console.log("Tentativo di fetch degli eventi senza filtri...");
+    const allEvents = await getContractEvents({
+      contract,
+      eventName: "BatchInitialized",
+      // Il campo 'filters' è stato completamente rimosso per questo test.
+    });
+    console.log("Eventi ricevuti con successo:", allEvents);
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("Dettagli errore API proxy:", errorData);
-        throw new Error(`Errore API di Insight Proxy: ${response.status} ${response.statusText}`);
-      }
 
-      const decodedEvents = await response.json();
+    // ---- PASSO 2: Filtra i risultati manualmente nel frontend ----
+    const userEvents = allEvents.filter(
+      (event) => event.args.contributor.toLowerCase() === account.address.toLowerCase()
+    );
 
-      const formattedBatches: BatchData[] = decodedEvents.map((event: any) => ({
-        id: event.batchId.toString(),
-        batchId: BigInt(event.batchId),
-        name: event.name,
-        description: event.description,
-        date: event.date,
-        location: event.location,
-        isClosed: event.isClosed,
-      }));
 
-      setAllBatches(
-        formattedBatches.sort(
-          (a, b) => Number(b.batchId) - Number(a.batchId)
-        )
-      );
+    // ---- PASSO 3: Continua con la logica di mappatura e ordinamento ----
+    const formattedBatches: BatchData[] = userEvents.map((event: any) => ({
+      id: event.args.batchId.toString(),
+      batchId: BigInt(event.args.batchId),
+      name: event.args.name,
+      description: event.args.description,
+      date: event.args.date,
+      location: event.args.location,
+      isClosed: event.args.isClosed,
+    }));
 
-    } catch (error) {
-      console.error("Errore nel caricare i lotti da Insight:", error);
-      setAllBatches([]);
-    } finally {
-      setIsLoadingBatches(false);
-    }
-  };
+    setAllBatches(
+      formattedBatches.sort(
+        (a, b) => Number(b.batchId) - Number(a.batchId)
+      )
+    );
+
+  } catch (error) {
+    console.error("Errore dettagliato da getContractEvents:", error);
+    setAllBatches([]);
+  } finally {
+    setIsLoadingBatches(false);
+  }
+};
 
   useEffect(() => {
     if (account?.address) {
