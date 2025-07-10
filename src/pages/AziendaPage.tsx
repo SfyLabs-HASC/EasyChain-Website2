@@ -14,6 +14,7 @@ import {
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
+import { getEvents } from "thirdweb/extensions";
 import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
@@ -430,19 +431,19 @@ export default function AziendaPage() {
   setIsLoadingBatches(true);
 
   try {
-    const response = await fetch(`/api/thirdweb-insight?address=${account.address}`);
-    const json = await response.json();
+    const events = await getEvents({
+      contract,
+      event: { signature: "event InitializeBatch(address contributor, uint256 batchId, string name, string description, string date, string location, bool isClosed)" },
+      client,
+      chain: polygon,
+    });
 
-    if (!response.ok) {
-      throw new Error(json.error || "Errore generico dal server Insight");
-    }
+    const filteredEvents = events.filter((e) => {
+  return e.args?.contributor?.toLowerCase() === account.address.toLowerCase();
+});
 
-    if (!Array.isArray(json.events)) {
-      throw new Error("Risposta Insight non valida o mancano eventi.");
-    }
-
-    const userEvents = json.events.map((event) => {
-      const decoded = event.decoded || event.data || {};
+    const userEvents = filteredEvents.map((event) => {
+      const decoded = event.args || {};
       return {
         id: decoded.batchId?.toString() || "",
         batchId: BigInt(decoded.batchId || 0),
