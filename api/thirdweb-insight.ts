@@ -5,8 +5,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Parametro 'address' mancante." });
   }
 
-  if (!process.env.THIRDWEB_CLIENT_ID || !process.env.THIRDWEB_SECRET_KEY) {
-    console.error("THIRDWEB_CLIENT_ID o SECRET_KEY mancanti.");
+  const CLIENT_ID = process.env.THIRDWEB_CLIENT_ID;
+  const SECRET_KEY = process.env.THIRDWEB_SECRET_KEY;
+
+  if (!CLIENT_ID || !SECRET_KEY) {
+    console.error("Client ID o Secret Key mancanti.");
     return res.status(500).json({ error: "Client ID o Secret Key mancanti." });
   }
 
@@ -26,19 +29,19 @@ export default async function handler(req, res) {
     const response = await fetch(fullUrl, {
       method: "GET",
       headers: {
-        "x-client-id": process.env.THIRDWEB_CLIENT_ID,
-        Authorization: `Bearer ${process.env.THIRDWEB_SECRET_KEY}`,
+        "x-client-id": CLIENT_ID,
+        Authorization: `Bearer ${SECRET_KEY}`,
         "Content-Type": "application/json",
       },
     });
 
-    const text = await response.text();
+    const raw = await response.text();
     let data;
 
     try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Risposta Insight RAW:", text);
+      data = JSON.parse(raw);
+    } catch (e) {
+      console.error("Risposta Insight NON JSON:", raw);
       return res.status(500).json({ error: "Insight ha risposto in formato non valido." });
     }
 
@@ -47,14 +50,18 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ error: "Insight API error", details: data });
     }
 
+    // Filtro eventi per indirizzo del contributor (se presente)
     const events = data.events?.filter((event) => {
-      const contributor = event?.decoded?.contributor || event?.data?.contributor;
+      const contributor =
+        event?.decoded?.contributor ||
+        event?.data?.contributor ||
+        event?.decoded?.args?.contributor;
       return contributor?.toLowerCase() === address.toLowerCase();
     }) || [];
 
     return res.status(200).json({ events });
-  } catch (error) {
-    console.error("Errore server:", error);
+  } catch (err) {
+    console.error("Errore durante la chiamata a Insight:", err);
     return res.status(500).json({ error: "Errore interno del server." });
   }
 }
