@@ -14,7 +14,7 @@ import {
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
-import { getEvents } from "thirdweb/extensions";
+import { getEvents } from "thirdweb";
 import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
