@@ -10,15 +10,14 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
+  getEvents,
 } from "thirdweb";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
-import { getEvents } from "thirdweb";
 import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
-
 const AziendaPageStyles = () => (
   <style>{`
     .app-container-full { padding: 0 2rem; }
