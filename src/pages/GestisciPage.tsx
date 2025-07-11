@@ -1,5 +1,4 @@
-// FILE: src/pages/GestisciPage.tsx
-// (CODICE CON CORREZIONI A STATO, HEADER E CONTEGGIO EVENTI)
+// FILE: src/pages/GestisciPage.tsx (CON URL PLACEHOLDER AGGIORNATO)
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
@@ -161,7 +160,11 @@ const ImagePlaceholder = () => ( <div style={{width:'150px',height:'150px',flexS
 
 const BatchSummaryCard = ({ batchInfo, eventCount, onAddEventoClick, onFinalize }: { batchInfo: any, eventCount: number, onAddEventoClick: () => void, onFinalize: () => void }) => {
     if(!batchInfo) return null;
+    
+    // --- MODIFICA APPORTATA QUI ---
+    // Ho aggiornato l'URL dell'immagine di default come richiesto.
     const defaultImageUrl="https://musical-emerald-partridge.myfilebase.com/ipfs/QmNUGt9nxmkV27qF56jFAG9FUPABvGww5TTW9R9vh2TdvB";
+
     const imageUrl=batchInfo[7]&&batchInfo[7]!=="N/A"?`https://musical-emerald-partridge.myfilebase.com/ipfs/${batchInfo[7]}`:defaultImageUrl;
     const isPlaceholder=imageUrl===defaultImageUrl;
     const isClosed=batchInfo[8];
