@@ -67,8 +67,8 @@ const AziendaPageStyles = () => (
 const CONTRACT_ADDRESS =
   "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
 
-const client = createThirdwebClient({
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
+const client = createThirdwebClient({ 
+  clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID 
 });
 const contract = getContract({
   client,

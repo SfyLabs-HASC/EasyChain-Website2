@@ -10,7 +10,7 @@ import '../App.css';
 import TransactionStatusModal from '../components/TransactionStatusModal';
 
 const client = createThirdwebClient({ 
-  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID 
+  clientId: import.meta.env.VITE_THIRDWEB_CLIENT_ID 
 });
 const contract = getContract({ 
   client, 
