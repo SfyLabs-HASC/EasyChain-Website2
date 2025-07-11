@@ -13,33 +13,14 @@ import {
   getContract,
   prepareContractCall,
 } from "thirdweb";
-import { getContractEvents } from "thirdweb/events"; // <-- ECCOLO QUI
+import { getContractEvents } from "thirdweb/events";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 // ---
 
 import { supplyChainABI as abi } from "../abi/contractABI";
 import "../App.css";
-
 import TransactionStatusModal from "../components/TransactionStatusModal";
-import {
-  ConnectButton,
-  useActiveAccount,
-  useReadContract,
-  useSendTransaction,
-} from "thirdweb/react";
-import {
-  createThirdwebClient,
-  getContract,
-  prepareContractCall,
-} from "thirdweb";
-import { polygon } from "thirdweb/chains";
-import { inAppWallet } from "thirdweb/wallets";
-import { supplyChainABI as abi } from "../abi/contractABI";
-import "../App.css";
-
-import TransactionStatusModal from "../components/TransactionStatusModal";
-
 // --- Stili CSS incorporati ---
 const AziendaPageStyles = () => (
   <style>{` 
