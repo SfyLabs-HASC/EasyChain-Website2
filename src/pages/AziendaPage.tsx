@@ -486,7 +486,7 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ✅ Correzione: Avvolgiamo la funzione in useCallback per renderla stabile
+  // Incolla questo codice al posto della tua attuale funzione fetchAllBatches
   const fetchAllBatches = useCallback(async () => {
     if (!account?.address) return;
     setIsLoadingBatches(true);
@@ -501,30 +501,22 @@ export default function AziendaPage() {
     });
 
     try {
-  const response = await fetch(
-    `${insightUrl}?${params.toString()}`, {
-      method: "GET",
-      headers: {
-        "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID,
-        "Content-Type": "application/json",
-      },
-    } // <-- La parentesi graffa chiude l'oggetto delle opzioni
-  ); // <-- La parentesi tonda chiude la chiamata fetch
+      const response = await fetch(
+        `${insightUrl}?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-  // Ora che hai la risposta, puoi controllarla
-  if (!response.ok) {
-    throw new Error(
-      `Errore API di Insight: ${response.statusText}`,
-    );
-  }
-
-  // ... e poi continui con il resto della logica
-  const data = await response.json();
-  // ...
-
-} catch (error) {
-  // ...
-}
+      if (!response.ok) {
+        throw new Error(
+          `Errore API di Insight: ${response.statusText}`,
+        );
+      }
 
       const data = await response.json();
 
@@ -545,6 +537,7 @@ export default function AziendaPage() {
           (a, b) => Number(b.batchId) - Number(a.batchId),
         ),
       );
+
     } catch (error) {
       console.error(
         "Errore nel caricare i lotti da Insight:",
@@ -554,7 +547,7 @@ export default function AziendaPage() {
     } finally {
       setIsLoadingBatches(false);
     }
-  }, [account?.address]); // La dipendenza è stabile: l'indirizzo dell'account
+  }, [account?.address]);
 
   // ✅ Correzione: Usiamo dipendenze stabili per evitare il ciclo infinito
   useEffect(() => {
