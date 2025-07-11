@@ -1,6 +1,6 @@
-// FILE: src/pages/GestisciPage.tsx (CON URL PLACEHOLDER AGGIORNATO)
+// FILE: src/pages/GestisciPage.tsx (CORRETTO E OTTIMIZZATO)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Aggiunto useCallback
 import { useParams, Link } from 'react-router-dom';
 import { ConnectButton, useActiveAccount, useReadContract, useSendTransaction } from 'thirdweb/react';
 import { createThirdwebClient, getContract, prepareContractCall, readContract } from 'thirdweb';
@@ -13,7 +13,8 @@ const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2e
 const contract = getContract({ 
   client, 
   chain: polygon,
-  address: "0x4a866C3A071816E3186e18cbE99a3339f4571302"
+  // NOTA: Assicurati che questo sia l'indirizzo corretto del contratto che stai usando
+  address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e" 
 });
 
 const EventoCard = ({ eventoInfo }: { eventoInfo: any }) => (
@@ -46,7 +47,7 @@ const AggiungiEventoModal = ({ batchId, contributorName, onClose, onSuccess }: {
     };
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => setSelectedFile(e.target.files?.[0] || null);
 
-    const handleAddEvento = async () => {
+    const handleAddEvento = useCallback(async () => {
         let attachmentsIpfsHash = "N/A";
         if (selectedFile) {
             const MAX_SIZE_MB = 5;
@@ -84,15 +85,15 @@ const AggiungiEventoModal = ({ batchId, contributorName, onClose, onSuccess }: {
 
         sendTransaction(transaction, { 
             onSuccess: () => { setLoadingMessage(''); onSuccess(); },
-            onError: (err) => { setLoadingMessage(''); setTxResult({ status: 'error', message: err.message }); } 
+            onError: (err) => { setLoadingMessage(''); setTxResult({ status: 'error', message: `Errore durante la transazione: ${err.message}` }); } 
         });
-    };
+    }, [selectedFile, contributorName, formData, batchId, contract, sendTransaction, onSuccess]);
     
-    const handleConfirmAndSubmit = () => {
-        if (window.confirm("Vuoi confermare tutti i dati inseriti e procedere scrivere l'evento?")) {
+    const handleConfirmAndSubmit = useCallback(() => {
+        if (window.confirm("Vuoi confermare tutti i dati inseriti e procedere a scrivere l'evento?")) {
             handleAddEvento();
         }
-    };
+    }, [handleAddEvento]);
 
     const handleNextStep = () => {
         if (currentStep === 1 && !formData.eventName.trim()) {
@@ -117,11 +118,11 @@ const AggiungiEventoModal = ({ batchId, contributorName, onClose, onSuccess }: {
                         {currentStep === 5 && <div> <div className="form-group"> <label>Carica Allegato <span style={{color: '#6c757d'}}>Non obbligatorio</span></label> <input type="file" name="attachment" onChange={handleFileChange} className="form-input" accept=".jpg, .jpeg, .png, .webp, .pdf, .docx, .xlsx, .txt, .csv"/> {selectedFile && <p className="file-name-preview">File selezionato: {selectedFile.name}</p>} <small style={{marginTop: '4px'}}>Formati supportati. Max: 5 MB.</small> </div> <div style={helpTextStyle}><p>Allega un documento o un'immagine relativa a questo evento (es. bolla di trasporto, certificato di analisi, foto del prodotto, ecc.).</p></div> </div>}
                     </div>
                     <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
-                        <div>{currentStep > 1 && <button onClick={() => setCurrentStep(p => p - 1)} className="web3-button secondary">Indietro</button>}</div>
+                        <div>{currentStep > 1 && <button onClick={() => setCurrentStep(p => p - 1)} className="web3-button secondary" disabled={isProcessing}>Indietro</button>}</div>
                         <div>
-                            <button onClick={onClose} className="web3-button secondary">Chiudi</button>
+                            <button onClick={onClose} className="web3-button secondary" disabled={isProcessing}>Chiudi</button>
                             {currentStep < 5 && <button onClick={handleNextStep} className="web3-button">Avanti</button>}
-                            {currentStep === 5 && <button onClick={handleConfirmAndSubmit} disabled={isProcessing} className="web3-button">{isProcessing ? "..." : "Conferma"}</button>}
+                            {currentStep === 5 && <button onClick={handleConfirmAndSubmit} disabled={isProcessing} className="web3-button">{isProcessing ? "Attendere..." : "Conferma e Registra"}</button>}
                         </div>
                     </div>
                 </div>
@@ -138,7 +139,6 @@ const GestisciPageHeader = ({ contributorInfo }: { contributorInfo: any }) => {
     return (
         <div className="dashboard-header-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-                {/* MODIFICA: Aumentata grandezza del font */}
                 <h2 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '3rem' }}>{companyName}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                     <div className="status-item"><span>Crediti Rimanenti: <strong>{credits}</strong></span></div>
@@ -161,19 +161,15 @@ const ImagePlaceholder = () => ( <div style={{width:'150px',height:'150px',flexS
 const BatchSummaryCard = ({ batchInfo, eventCount, onAddEventoClick, onFinalize }: { batchInfo: any, eventCount: number, onAddEventoClick: () => void, onFinalize: () => void }) => {
     if(!batchInfo) return null;
     
-    // --- MODIFICA APPORTATA QUI ---
-    // Ho aggiornato l'URL dell'immagine di default come richiesto.
     const defaultImageUrl="https://musical-emerald-partridge.myfilebase.com/ipfs/QmNUGt9nxmkV27qF56jFAG9FUPABvGww5TTW9R9vh2TdvB";
-
     const imageUrl=batchInfo[7]&&batchInfo[7]!=="N/A"?`https://musical-emerald-partridge.myfilebase.com/ipfs/${batchInfo[7]}`:defaultImageUrl;
     const isPlaceholder=imageUrl===defaultImageUrl;
     const isClosed=batchInfo[8];
 
-    // MODIFICA: Stile per il pallino colorato dello stato
     const statusIndicatorStyle = {
         height: '12px',
         width: '12px',
-        backgroundColor: isClosed ? '#28a745' : '#ffc107', // Verde per chiuso, Giallo per aperto
+        backgroundColor: isClosed ? '#28a745' : '#ffc107',
         borderRadius: '50%',
         display: 'inline-block',
         marginRight: '8px',
@@ -187,7 +183,6 @@ const BatchSummaryCard = ({ batchInfo, eventCount, onAddEventoClick, onFinalize 
                 <p style={{margin:0,color:'#ced4da',fontSize:'0.95rem'}}>{batchInfo[4]||'Nessuna descrizione fornita.'}</p>
             </div>
             <div style={{flex:'1 1 25%',color:'#ced4da',textAlign:'left'}}>
-                {/* MODIFICA: Aggiunto indicatore colorato e usato eventCount */}
                 <p style={{margin:'0.3rem 0', display: 'flex', alignItems: 'center'}}>
                     <span style={statusIndicatorStyle}></span>
                     <strong>Stato Iscrizione:</strong> <span style={{fontWeight:'bold', marginLeft: '4px'}}>{isClosed?'Chiuso':'Aperto'}</span>
@@ -209,61 +204,96 @@ const BatchSummaryCard = ({ batchInfo, eventCount, onAddEventoClick, onFinalize 
 export default function GestisciPage() {
     const { batchId } = useParams<{ batchId: string }>();
     const account = useActiveAccount();
-    const { data: contributorInfo } = useReadContract({ contract, method: "function getContributorInfo(address) view returns (string, uint256, bool)", params: account ? [account.address] : undefined });
+    const { mutate: sendTransaction, isPending: isFinalizing } = useSendTransaction();
 
     const [batchInfo, setBatchInfo] = useState<any>(null);
     const [eventi, setEventi] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const { mutate: sendTransaction, isPending: isFinalizing } = useSendTransaction();
     const [txResult, setTxResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // MODIFICA: Hook dedicato per leggere il conteggio degli eventi in modo affidabile
+    // ✅ Hook ottimizzato per info del contributore
+    const { data: contributorInfo } = useReadContract({ 
+        contract, 
+        method: "function getContributorInfo(address) view returns (string, uint256, bool)", 
+        params: account ? [account.address] : undefined,
+        queryOptions: { enabled: !!account, refetchOnWindowFocus: false } 
+    });
+
+    // ✅ Hook ottimizzato per il conteggio degli eventi
     const { data: eventCount, refetch: refetchEventCount } = useReadContract({
         contract,
         method: "function getBatchStepCount(uint256)",
         params: batchId ? [BigInt(batchId)] : undefined,
-        queryOptions: { enabled: !!batchId }
+        queryOptions: { enabled: !!batchId, refetchOnWindowFocus: false }
     });
 
-    const fetchBatchData = async () => {
+    // ✅ Funzione stabile per caricare i dati base
+    const fetchBatchData = useCallback(async () => {
         if (!batchId) return;
         setIsLoading(true);
         try {
             const id = BigInt(batchId);
             const info = await readContract({ contract, abi, method: "function getBatchInfo(uint256) view returns (uint256,address,string,string,string,string,string,string,bool)", params: [id] });
             setBatchInfo(info);
-            
-            // La logica per caricare i dettagli degli eventi rimane, ma il conteggio ora è gestito dall'hook
-            const count = await readContract({ contract, abi, method: "function getBatchStepCount(uint256) view returns (uint256)", params: [id] }) as bigint;
-            const stepsPromises = Array.from({ length: Number(count) }, (_, i) => 
-                readContract({ contract, abi, method: "function getStepDetails(uint256, uint256) view returns (string, string, string, string, string)", params: [id, BigInt(i)] })
-            );
-            const stepsDetails = await Promise.all(stepsPromises);
-            setEventi(stepsDetails.reverse()); // Mostra i più recenti per primi
-        } catch (error) { console.error("Errore nel caricare i dati del batch:", error); } 
-        finally { setIsLoading(false); }
-    };
+        } catch (error) { 
+            console.error("Errore nel caricare i dati del batch:", error); 
+        } finally {
+            setIsLoading(false);
+        }
+    }, [batchId]);
 
-    useEffect(() => { fetchBatchData(); }, [batchId]);
+    // ✅ Effetto per caricare i dati base all'avvio
+    useEffect(() => {
+        fetchBatchData();
+    }, [fetchBatchData]);
     
-    const handleFinalize = () => {
+    // ✅ Effetto separato per caricare gli eventi solo quando eventCount è disponibile
+    useEffect(() => {
+        const fetchEvents = async () => {
+            if (eventCount === undefined || !batchId) return;
+            try {
+                const id = BigInt(batchId);
+                const count = Number(eventCount);
+                if (count === 0) {
+                    setEventi([]);
+                    return;
+                }
+                const stepsPromises = Array.from({ length: count }, (_, i) => 
+                    readContract({ contract, abi, method: "function getStepDetails(uint256, uint256) view returns (string, string, string, string, string)", params: [id, BigInt(i)] })
+                );
+                const stepsDetails = await Promise.all(stepsPromises);
+                setEventi(stepsDetails.reverse());
+            } catch (error) {
+                console.error("Errore nel caricare i dettagli degli eventi:", error);
+            }
+        };
+
+        fetchEvents();
+    }, [eventCount, batchId]);
+    
+    // ✅ Funzione stabile per la finalizzazione
+    const handleFinalize = useCallback(() => {
         const confirmationMessage = "Conferma finalizzazione iscrizione\n\nSei sicuro di voler finalizzare questa iscrizione?\nDopo questa operazione non potrai più aggiungere eventi o modificare la filiera.\nL’iscrizione sarà considerata completa e chiusa.";
         if (!batchId || !window.confirm(confirmationMessage)) return;
         
         const transaction = prepareContractCall({ contract, abi, method: "function closeBatch(uint256 _batchId)", params: [BigInt(batchId)] });
         sendTransaction(transaction, {
-            onSuccess: () => { setTxResult({ status: 'success', message: 'Iscrizione finalizzata con successo!' }); fetchBatchData(); },
-            onError: (err) => setTxResult({ status: 'error', message: `Errore: ${err.message}` })
+            onSuccess: () => { 
+                setTxResult({ status: 'success', message: 'Iscrizione finalizzata con successo!' }); 
+                fetchBatchData();
+                refetchEventCount();
+            },
+            onError: (err) => setTxResult({ status: 'error', message: `Errore durante la finalizzazione: ${err.message}` })
         });
-    };
+    }, [batchId, sendTransaction, fetchBatchData, refetchEventCount]);
     
-    const handleAddEventoSuccess = () => {
+    // ✅ Funzione stabile per gestire il successo dell'aggiunta evento
+    const handleAddEventoSuccess = useCallback(() => {
         setTxResult({ status: 'success', message: 'Evento aggiunto con successo!' });
         setIsModalOpen(false);
-        fetchBatchData();
-        refetchEventCount(); // MODIFICA: Forza l'aggiornamento del conteggio eventi
-    };
+        refetchEventCount(); // Forza l'aggiornamento del conteggio eventi, che a sua volta ricaricherà la lista
+    }, [refetchEventCount]);
 
     return (
         <div className="app-container-full" style={{ padding: '0 2rem' }}>
@@ -283,8 +313,8 @@ export default function GestisciPage() {
                             <h4>Eventi dell'Iscrizione</h4>
                             {eventi.length === 0 ? (
                                 <div style={{textAlign: 'center', padding: '2rem', color: '#adb5bd'}}>
-                                    <span style={{fontSize: '3rem', color: '#dc3545', fontWeight: 'bold', lineHeight: '1'}}>×</span>
-                                    <p>Nessun Evento aggiunto a questa iscrizione.</p>
+                                    <span style={{fontSize: '3rem', color: '#6c757d', fontWeight: 'bold', lineHeight: '1'}}>ⓘ</span>
+                                    <p>Nessun evento ancora aggiunto a questa iscrizione.</p>
                                 </div>
                             ) : (
                                 eventi.map((evento, index) => <EventoCard key={index} eventoInfo={evento} />)
