@@ -505,12 +505,10 @@ export default function AziendaPage() {
         `${insightUrl}?${params.toString()}`,
         {
           method: "GET",
-          headers: {
-            "x-thirdweb-client-id": CLIENT_ID,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+headers: {
+    "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID, // Usa la variabile d'ambiente
+    "Content-Type": "application/json",
+},
 
       if (!response.ok) {
         throw new Error(
