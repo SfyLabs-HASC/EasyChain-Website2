@@ -501,20 +501,30 @@ export default function AziendaPage() {
     });
 
     try {
-      const response = await fetch(
-        `${insightUrl}?${params.toString()}`,
-        {
-          method: "GET",
-headers: {
-    "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID, // Usa la variabile d'ambiente
-    "Content-Type": "application/json",
-},
+  const response = await fetch(
+    `${insightUrl}?${params.toString()}`, {
+      method: "GET",
+      headers: {
+        "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID,
+        "Content-Type": "application/json",
+      },
+    } // <-- La parentesi graffa chiude l'oggetto delle opzioni
+  ); // <-- La parentesi tonda chiude la chiamata fetch
 
-      if (!response.ok) {
-        throw new Error(
-          `Errore API di Insight: ${response.statusText}`,
-        );
-      }
+  // Ora che hai la risposta, puoi controllarla
+  if (!response.ok) {
+    throw new Error(
+      `Errore API di Insight: ${response.statusText}`,
+    );
+  }
+
+  // ... e poi continui con il resto della logica
+  const data = await response.json();
+  // ...
+
+} catch (error) {
+  // ...
+}
 
       const data = await response.json();
 
