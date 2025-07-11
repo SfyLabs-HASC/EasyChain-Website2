@@ -9,11 +9,12 @@ import { supplyChainABI as abi } from '../abi/contractABI';
 import '../App.css';
 import TransactionStatusModal from '../components/TransactionStatusModal';
 
-const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2eb" });
+const client = createThirdwebClient({ 
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID 
+});
 const contract = getContract({ 
   client, 
   chain: polygon,
-  // NOTA: Assicurati che questo sia l'indirizzo corretto del contratto che stai usando
   address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e" 
 });
 

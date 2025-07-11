@@ -63,12 +63,12 @@ const AziendaPageStyles = () => (
    `}</style>
 );
 
-const CLIENT_ID = "e40dfd747fabedf48c5837fb79caf2eb";
+// Il tuo ID cliente ora viene letto in modo sicuro dalle variabili d'ambiente di Vercel
 const CONTRACT_ADDRESS =
   "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
 
 const client = createThirdwebClient({
-  clientId: CLIENT_ID,
+  clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID,
 });
 const contract = getContract({
   client,
