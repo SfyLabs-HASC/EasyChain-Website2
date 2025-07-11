@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react"; // <-- Aggiunto useRef
 import { Link } from "react-router-dom";
 
 // --- Tutti gli import di Thirdweb raggruppati ---
