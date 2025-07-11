@@ -1,5 +1,27 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+
+// --- Tutti gli import di Thirdweb raggruppati ---
+import {
+  ConnectButton,
+  useActiveAccount,
+  useReadContract,
+  useSendTransaction,
+} from "thirdweb/react";
+import {
+  createThirdwebClient,
+  getContract,
+  prepareContractCall,
+} from "thirdweb";
+import { getContractEvents } from "thirdweb/events"; // <-- ECCOLO QUI
+import { polygon } from "thirdweb/chains";
+import { inAppWallet } from "thirdweb/wallets";
+// ---
+
+import { supplyChainABI as abi } from "../abi/contractABI";
+import "../App.css";
+
+import TransactionStatusModal from "../components/TransactionStatusModal";
 import {
   ConnectButton,
   useActiveAccount,
