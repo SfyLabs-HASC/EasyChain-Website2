@@ -510,7 +510,6 @@ export default function AziendaPage() {
   "Content-Type": "application/json",
 },
 
-      if (!response.ok) {
         throw new Error(
           `Errore API di Insight: ${response.statusText}`,
         );
