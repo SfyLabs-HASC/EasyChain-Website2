@@ -506,11 +506,9 @@ export default function AziendaPage() {
         {
           method: "GET",
           headers: {
-            "x-thirdweb-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  "x-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID, // <-- NOME HEADER CORRETTO
+  "Content-Type": "application/json",
+},
 
       if (!response.ok) {
         throw new Error(
