@@ -506,10 +506,14 @@ export default function AziendaPage() {
         {
           method: "GET",
           headers: {
-  "x-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID, // <-- NOME HEADER CORRETTO
-  "Content-Type": "application/json",
-},
+            "x-client-id": import.meta.env.VITE_THIRDWEB_CLIENT_ID,
+            "Content-Type": "application/json",
+          },
+        } // La configurazione della fetch finisce qui
+      ); // La chiamata fetch() finisce qui
 
+      // IL CONTROLLO VA FATTO DOPO CHE LA FETCH È COMPLETATA
+      if (!response.ok) {
         throw new Error(
           `Errore API di Insight: ${response.statusText}`,
         );
