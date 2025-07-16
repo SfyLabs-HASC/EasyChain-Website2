@@ -83,9 +83,6 @@ const contract = getContract({
   abi,
 });
 
-console.log("ABI in uso:", contract.abi ? "Caricato" : "NON Caricato");
-
-
 const RegistrationForm = () => (
   <div className="card">
     <h3>Benvenuto su Easy Chain!</h3>
@@ -97,15 +94,16 @@ const RegistrationForm = () => (
   </div>
 );
 
+// ✅ MODIFICA: Componente semplificato, riceve onShowDescription come prop
 const BatchRow = ({
   batch,
   localId,
+  onShowDescription,
 }: {
   batch: BatchData;
   localId: number;
+  onShowDescription: (batch: BatchData) => void;
 }) => {
-  const [showDescription, setShowDescription] =
-    useState(false);
   const { data: stepCount } = useReadContract({
     contract,
     method: "getBatchStepCount",
@@ -123,7 +121,7 @@ const BatchRow = ({
         <td>
           <span
             className="clickable-name"
-            onClick={() => setShowDescription(true)}
+            onClick={() => onShowDescription(batch)}
           >
             {batch.name || "/"}
           </span>
@@ -156,7 +154,7 @@ const BatchRow = ({
           <div className="card-header">
             <strong
               className="clickable-name"
-              onClick={() => setShowDescription(true)}
+              onClick={() => onShowDescription(batch)}
             >
               {batch.name || "N/A"}
             </strong>
@@ -195,35 +193,6 @@ const BatchRow = ({
           </div>
         </td>
       </tr>
-      {showDescription && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDescription(false)}
-        >
-          <div
-            className="modal-content description-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Descrizione Iscrizione / Lotto</h2>
-            </div>
-            <div className="modal-body">
-              <p>
-                {batch.description ||
-                  "Nessuna descrizione fornita."}
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => setShowDescription(false)}
-                className="web3-button"
-              >
-                Chiudi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };
@@ -238,6 +207,7 @@ interface BatchData {
   isClosed: boolean;
 }
 
+// ✅ MODIFICA: Riceve e passa onShowDescription
 const BatchTable = ({
   batches,
   nameFilter,
@@ -246,6 +216,7 @@ const BatchTable = ({
   setLocationFilter,
   statusFilter,
   setStatusFilter,
+  onShowDescription,
 }: any) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsToShow, setItemsToShow] = useState(10);
@@ -338,6 +309,7 @@ const BatchTable = ({
                 key={batch.id}
                 batch={batch}
                 localId={startIndex + index + 1}
+                onShowDescription={onShowDescription}
               />
             ))
           ) : (
@@ -518,6 +490,9 @@ export default function AziendaPage() {
   
   const [loadingMethod, setLoadingMethod] = useState<'rpc' | 'insight' | null>(null);
 
+  // ✅ NUOVO: Stato per il modale della descrizione
+  const [descriptionModalBatch, setDescriptionModalBatch] = useState<BatchData | null>(null);
+
   const [nameFilter, setNameFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -606,9 +581,6 @@ export default function AziendaPage() {
         
         const batchesInfo = await Promise.all(batchDetailsPromises);
         
-        console.log("Dati grezzi da RPC:", batchesInfo);
-
-        // ✅ CORREZIONE: Filtro più robusto e mappatura tramite destrutturazione.
         const formattedBatches = batchesInfo
             .filter(batch => Array.isArray(batch) && batch.length > 0) 
             .map((batchInfo: any[]) => {
@@ -842,6 +814,7 @@ export default function AziendaPage() {
             setLocationFilter={setLocationFilter}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
+            onShowDescription={setDescriptionModalBatch}
           />
         )}
       </>
@@ -887,6 +860,25 @@ export default function AziendaPage() {
       <main className="main-content-full">
         {renderDashboardContent()}
       </main>
+
+      {/* ✅ MODIFICA: Modale renderizzato qui, a livello di pagina */}
+      {descriptionModalBatch && (
+        <div className="modal-overlay" onClick={() => setDescriptionModalBatch(null)}>
+            <div className="modal-content description-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h2>Descrizione Iscrizione / Lotto</h2>
+                </div>
+                <div className="modal-body">
+                    <p>{descriptionModalBatch.description || "Nessuna descrizione fornita."}</p>
+                </div>
+                <div className="modal-footer">
+                    <button onClick={() => setDescriptionModalBatch(null)} className="web3-button">
+                        Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {modal === "init" && (
         <div
