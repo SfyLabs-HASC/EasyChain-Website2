@@ -83,7 +83,7 @@ const contract = getContract({
   abi,
 });
 
-console.log("ABI attualmente in uso:", contract.abi);
+console.log("ABI in uso:", contract.abi ? "Caricato" : "NON Caricato");
 
 
 const RegistrationForm = () => (
@@ -608,18 +608,32 @@ export default function AziendaPage() {
         
         console.log("Dati grezzi da RPC:", batchesInfo);
 
-        // ✅ CORREZIONE: Filtro più robusto e mappatura tramite indici.
+        // ✅ CORREZIONE: Filtro più robusto e mappatura tramite destrutturazione.
         const formattedBatches = batchesInfo
             .filter(batch => Array.isArray(batch) && batch.length > 0) 
-            .map((batch: any[]) => ({
-                id: batch[0].toString(),
-                batchId: batch[0],
-                name: batch[3],
-                description: batch[4],
-                date: batch[5],
-                location: batch[6],
-                isClosed: batch[8],
-            }));
+            .map((batchInfo: any[]) => {
+                const [
+                    id,
+                    contributor,
+                    contributorName,
+                    name,
+                    description,
+                    date,
+                    location,
+                    imageIpfsHash,
+                    isClosed
+                ] = batchInfo;
+
+                return {
+                    id: id.toString(),
+                    batchId: id,
+                    name: name,
+                    description: description,
+                    date: date,
+                    location: location,
+                    isClosed: isClosed,
+                };
+            });
 
         setAllBatches(
             formattedBatches.sort((a, b) => Number(b.batchId) - Number(a.batchId))
