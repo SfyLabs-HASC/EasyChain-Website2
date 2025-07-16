@@ -21,52 +21,51 @@ import TransactionStatusModal from "../components/TransactionStatusModal";
 // --- Stili CSS incorporati ---
 const AziendaPageStyles = () => (
   <style>{` 
-      .app-container-full { padding: 0 2rem; } 
-      .main-header-bar { display: flex; justify-content: space-between; align-items: center; } 
-      .header-title { font-size: 1.75rem; font-weight: bold; } 
-      .dashboard-header-card { display: flex; justify-content: space-between; align-items: center; position: relative; padding: 1.5rem; background-color: #212529; border: 1px solid #495057; border-radius: 8px; margin-bottom: 2rem; } 
-      .dashboard-header-info { display: flex; flex-direction: column; } 
-      .company-name-header { margin-top: 0; margin-bottom: 1rem; font-size: 3rem; } 
-      .company-status-container { display: flex; align-items: center; gap: 1.5rem; } 
-      .status-item { display: flex; align-items: center; gap: 0.5rem; } 
-      .header-actions .web3-button.large { padding: 1rem 2rem; font-size: 1.1rem; } 
-      .company-table .desktop-row { display: table-row; } 
-      .company-table .mobile-card { display: none; } 
-      .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; } 
-      .recap-summary { text-align: left; padding: 15px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; margin-bottom: 20px;} 
-      .recap-summary p { margin: 8px 0; word-break: break-word; } 
-      .recap-summary p strong { color: #f8f9fa; } 
-      @media (max-width: 768px) { 
-        .app-container-full { padding: 0 1rem; } 
-        .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
-        .header-title { font-size: 1.5rem; } 
-        .wallet-button-container { align-self: flex-start; } 
-        .dashboard-header-card { flex-direction: column; align-items: flex-start; gap: 1.5rem; } 
-        .company-name-header { font-size: 2.2rem; } 
-        .company-status-container { flex-direction: column; align-items: flex-start; gap: 0.75rem; } 
-        .header-actions { width: 100%; } 
-        .header-actions .web3-button.large { width: 100%; font-size: 1rem; } 
-        .company-table thead { display: none; } 
-        .company-table .desktop-row { display: none; } 
-        .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } 
-        .company-table tr { margin-bottom: 1rem; } 
-        .company-table td[colspan="7"] { padding: 20px; text-align: center; border: 1px solid #495057; border-radius: 8px; } 
-        .mobile-card { display: block; border: 1px solid #495057; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background-color: #2c3e50; } 
-        .mobile-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid #495057; padding-bottom: 0.75rem; } 
-        .mobile-card .card-header strong { font-size: 1.1rem; } 
-        .mobile-card .card-body p { margin: 0.5rem 0; } 
-        .mobile-card .card-body p strong { color: #bdc3c7; } 
-        .mobile-card .card-footer { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #495057; } 
-        .mobile-card .web3-button { width: 100%; text-align: center; } 
-        .pagination-controls { flex-direction: column; gap: 1rem; } 
-      } 
-    `}</style>
+     .app-container-full { padding: 0 2rem; } 
+     .main-header-bar { display: flex; justify-content: space-between; align-items: center; } 
+     .header-title { font-size: 1.75rem; font-weight: bold; } 
+     .dashboard-header-card { display: flex; justify-content: space-between; align-items: center; position: relative; padding: 1.5rem; background-color: #212529; border: 1px solid #495057; border-radius: 8px; margin-bottom: 2rem; } 
+     .dashboard-header-info { display: flex; flex-direction: column; } 
+     .company-name-header { margin-top: 0; margin-bottom: 1rem; font-size: 3rem; } 
+     .company-status-container { display: flex; align-items: center; gap: 1.5rem; } 
+     .status-item { display: flex; align-items: center; gap: 0.5rem; } 
+     .header-actions .web3-button.large { padding: 1rem 2rem; font-size: 1.1rem; } 
+     .company-table .desktop-row { display: table-row; } 
+     .company-table .mobile-card { display: none; } 
+     .pagination-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; } 
+     .recap-summary { text-align: left; padding: 15px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; margin-bottom: 20px;} 
+     .recap-summary p { margin: 8px 0; word-break: break-word; } 
+     .recap-summary p strong { color: #f8f9fa; } 
+     @media (max-width: 768px) { 
+       .app-container-full { padding: 0 1rem; } 
+       .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
+       .header-title { font-size: 1.5rem; } 
+       .wallet-button-container { align-self: flex-start; } 
+       .dashboard-header-card { flex-direction: column; align-items: flex-start; gap: 1.5rem; } 
+       .company-name-header { font-size: 2.2rem; } 
+       .company-status-container { flex-direction: column; align-items: flex-start; gap: 0.75rem; } 
+       .header-actions { width: 100%; } 
+       .header-actions .web3-button.large { width: 100%; font-size: 1rem; } 
+       .company-table thead { display: none; } 
+       .company-table .desktop-row { display: none; } 
+       .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } 
+       .company-table tr { margin-bottom: 1rem; } 
+       .company-table td[colspan="7"] { padding: 20px; text-align: center; border: 1px solid #495057; border-radius: 8px; } 
+       .mobile-card { display: block; border: 1px solid #495057; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background-color: #2c3e50; } 
+       .mobile-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid #495057; padding-bottom: 0.75rem; } 
+       .mobile-card .card-header strong { font-size: 1.1rem; } 
+       .mobile-card .card-body p { margin: 0.5rem 0; } 
+       .mobile-card .card-body p strong { color: #bdc3c7; } 
+       .mobile-card .card-footer { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #495057; } 
+       .mobile-card .web3-button { width: 100%; text-align: center; } 
+       .pagination-controls { flex-direction: column; gap: 1rem; } 
+     } 
+   `}</style>
 );
 
-// ✅ --- NUOVE COSTANTI ---
-const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
-const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
-
+const CLIENT_ID = "e40dfd747fabedf48c5837fb79caf2eb";
+const CONTRACT_ADDRESS =
+  "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
 
 const client = createThirdwebClient({
   clientId: CLIENT_ID,
@@ -97,15 +96,13 @@ const BatchRow = ({
 }) => {
   const [showDescription, setShowDescription] =
     useState(false);
-
-  // ✅ --- CORREZIONE: `method` e `abi` per useReadContract ---
   const { data: stepCount } = useReadContract({
     contract,
-    abi: abi,
-    method: "getBatchStepCount",
+    abi,
+    method:
+      "function getBatchStepCount(uint256 _batchId) view returns (uint256)",
     params: [batch.batchId],
   });
-
   const formatDate = (dateStr: string | undefined) =>
     !dateStr || dateStr.split("-").length !== 3
       ? "/"
@@ -447,8 +444,6 @@ const truncateText = (text: string, maxLength: number) => {
 
 export default function AziendaPage() {
   const account = useActiveAccount();
-
-  // ✅ --- CORREZIONE: `method` e `abi` per useReadContract ---
   const {
     data: contributorData,
     isLoading: isStatusLoading,
@@ -456,15 +451,14 @@ export default function AziendaPage() {
     isError,
   } = useReadContract({
     contract,
-    abi: abi,
-    method: "getContributorInfo",
+    method:
+      "function getContributorInfo(address) view returns (string, uint256, bool)",
     params: account ? [account.address] : undefined,
     queryOptions: {
       enabled: !!account,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: false, // ✅ Correzione: Evita chiamate inutili
     },
   });
-
   const prevAccountRef = useRef(account?.address);
   const { mutate: sendTransaction, isPending } =
     useSendTransaction();
@@ -492,6 +486,7 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
+  // ✅ Correzione: Avvolgiamo la funzione in useCallback per renderla stabile
   const fetchAllBatches = useCallback(async () => {
     if (!account?.address) return;
     setIsLoadingBatches(true);
@@ -551,8 +546,9 @@ export default function AziendaPage() {
     } finally {
       setIsLoadingBatches(false);
     }
-  }, [account?.address]);
+  }, [account?.address]); // La dipendenza è stabile: l'indirizzo dell'account
 
+  // ✅ Correzione: Usiamo dipendenze stabili per evitare il ciclo infinito
   useEffect(() => {
     if (
       account?.address &&
@@ -683,12 +679,11 @@ export default function AziendaPage() {
       }
     }
     setLoadingMessage("Transazione in corso...");
-    
-    // ✅ --- CORREZIONE: `method` e `abi` per prepareContractCall ---
     const transaction = prepareContractCall({
       contract,
-      abi: abi,
-      method: "initializeBatch",
+      abi,
+      method:
+        "function initializeBatch(string,string,string,string,string)",
       params: [
         formData.name,
         formData.description,
@@ -697,7 +692,6 @@ export default function AziendaPage() {
         imageIpfsHash,
       ],
     });
-
     sendTransaction(transaction, {
       onSuccess: async () => {
         setTxResult({
