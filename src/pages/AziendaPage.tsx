@@ -76,7 +76,6 @@ const client = createThirdwebClient({
   clientId: CLIENT_ID,
 });
 
-// ✅ MODIFICA: L'ABI viene passato qui, una sola volta, per creare l'oggetto 'contract'.
 const contract = getContract({
   client,
   chain: polygon,
@@ -84,7 +83,6 @@ const contract = getContract({
   abi,
 });
 
-// ✅ DIAGNOSI: Questa riga stamperà l'ABI nella console del browser.
 console.log("ABI attualmente in uso:", contract.abi);
 
 
@@ -108,7 +106,6 @@ const BatchRow = ({
 }) => {
   const [showDescription, setShowDescription] =
     useState(false);
-  // ✅ MODIFICA: Standardizzata la chiamata al metodo
   const { data: stepCount } = useReadContract({
     contract,
     method: "getBatchStepCount",
@@ -485,7 +482,6 @@ const truncateText = (text: string, maxLength: number) => {
 
 export default function AziendaPage() {
   const account = useActiveAccount();
-  // ✅ MODIFICA: Standardizzata la chiamata al metodo
   const {
     data: contributorData,
     isLoading: isStatusLoading,
@@ -610,15 +606,18 @@ export default function AziendaPage() {
         
         const batchesInfo = await Promise.all(batchDetailsPromises);
 
-        const formattedBatches = batchesInfo.map((batch: any) => ({
-            id: batch.id.toString(),
-            batchId: batch.id,
-            name: batch.name,
-            description: batch.description,
-            date: batch.date,
-            location: batch.location,
-            isClosed: batch.isClosed,
-        }));
+        // ✅ CORREZIONE: Aggiunto un filtro per rimuovere risultati 'undefined' prima di mappare.
+        const formattedBatches = batchesInfo
+            .filter(batch => batch) // Se 'batch' è undefined, viene scartato.
+            .map((batch: any) => ({
+                id: batch.id.toString(), // Ora questa riga è sicura.
+                batchId: batch.id,
+                name: batch.name,
+                description: batch.description,
+                date: batch.date,
+                location: batch.location,
+                isClosed: batch.isClosed,
+            }));
 
         setAllBatches(
             formattedBatches.sort((a, b) => Number(b.batchId) - Number(a.batchId))
