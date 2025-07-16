@@ -75,11 +75,18 @@ const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
 const client = createThirdwebClient({
   clientId: CLIENT_ID,
 });
+
+// ✅ MODIFICA: L'ABI viene passato qui, una sola volta, per creare l'oggetto 'contract'.
 const contract = getContract({
   client,
   chain: polygon,
   address: CONTRACT_ADDRESS,
+  abi,
 });
+
+// ✅ DIAGNOSI: Questa riga stamperà l'ABI nella console del browser.
+console.log("ABI attualmente in uso:", contract.abi);
+
 
 const RegistrationForm = () => (
   <div className="card">
@@ -101,11 +108,10 @@ const BatchRow = ({
 }) => {
   const [showDescription, setShowDescription] =
     useState(false);
+  // ✅ MODIFICA: Standardizzata la chiamata al metodo
   const { data: stepCount } = useReadContract({
     contract,
-    abi,
-    method:
-      "function getBatchStepCount(uint256 _batchId) view returns (uint256)",
+    method: "getBatchStepCount",
     params: [batch.batchId],
   });
   const formatDate = (dateStr: string | undefined) =>
@@ -479,6 +485,7 @@ const truncateText = (text: string, maxLength: number) => {
 
 export default function AziendaPage() {
   const account = useActiveAccount();
+  // ✅ MODIFICA: Standardizzata la chiamata al metodo
   const {
     data: contributorData,
     isLoading: isStatusLoading,
@@ -486,8 +493,7 @@ export default function AziendaPage() {
     isError,
   } = useReadContract({
     contract,
-    method:
-      "function getContributorInfo(address) view returns (string, uint256, bool)",
+    method: "getContributorInfo",
     params: account ? [account.address] : undefined,
     queryOptions: {
       enabled: !!account,
@@ -531,7 +537,7 @@ export default function AziendaPage() {
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_signature:
-        "BatchInitialized(address,uint256,string)",
+        "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
       limit: "100",
     });
 
@@ -553,29 +559,18 @@ export default function AziendaPage() {
 
       const data = await response.json();
       
-      const batchDetailsPromises = data.result.map((event: any) =>
-          readContract({
-              contract,
-              abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
-              method: "getBatchInfo", // ✅ CORREZIONE: Semplificata la firma del metodo
-              params: [BigInt(event.data.batchId)]
-          })
-      );
-      
-      const batchesInfo = await Promise.all(batchDetailsPromises);
-
-      const formattedBatches = batchesInfo.map((batch: any) => ({
-          id: batch.id.toString(),
-          batchId: batch.id,
-          name: batch.name,
-          description: batch.description,
-          date: batch.date,
-          location: batch.location,
-          isClosed: batch.isClosed,
+      const batchesInfo = data.result.map((event: any) => ({
+          id: event.data.batchId.toString(),
+          batchId: BigInt(event.data.batchId),
+          name: event.data.name,
+          description: event.data.description,
+          date: event.data.date,
+          location: event.data.location,
+          isClosed: event.data.isClosed,
       }));
 
       setAllBatches(
-        formattedBatches.sort(
+        batchesInfo.sort(
           (a, b) => Number(b.batchId) - Number(a.batchId),
         ),
       );
@@ -595,22 +590,20 @@ export default function AziendaPage() {
     try {
         const batchIds = await readContract({
             contract,
-            abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
-            method: "getBatchesByContributor", // ✅ CORREZIONE: Semplificata la firma del metodo
+            method: "getBatchesByContributor", 
             params: [account.address]
         });
 
         if (batchIds.length === 0) {
             setAllBatches([]);
-            setLoadingMethod(null); // ✅ CORREZIONE: Interrompi il caricamento se non ci sono ID
+            setLoadingMethod(null);
             return;
         }
         
         const batchDetailsPromises = batchIds.map(id => 
             readContract({
                 contract,
-                abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
-                method: "getBatchInfo", // ✅ CORREZIONE: Semplificata la firma del metodo
+                method: "getBatchInfo",
                 params: [id]
             })
         );
@@ -713,9 +706,7 @@ export default function AziendaPage() {
     setLoadingMessage("Transazione in corso...");
     const transaction = prepareContractCall({
       contract,
-      abi,
-      method:
-        "function initializeBatch(string,string,string,string,string)",
+      method: "initializeBatch",
       params: [
         formData.name,
         formData.description,
