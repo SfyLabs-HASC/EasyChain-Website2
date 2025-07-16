@@ -63,9 +63,10 @@ const AziendaPageStyles = () => (
    `}</style>
 );
 
-const CLIENT_ID = "e40dfd747fabedf48c5837fb79caf2eb";
-const CONTRACT_ADDRESS =
-  "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e";
+// ✅ MODIFICA: Aggiornato Client ID e Indirizzo Contratto
+const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
+const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
+
 
 const client = createThirdwebClient({
   clientId: CLIENT_ID,
@@ -456,7 +457,7 @@ export default function AziendaPage() {
     params: account ? [account.address] : undefined,
     queryOptions: {
       enabled: !!account,
-      refetchOnWindowFocus: false, // ✅ Correzione: Evita chiamate inutili
+      refetchOnWindowFocus: false,
     },
   });
   const prevAccountRef = useRef(account?.address);
@@ -486,7 +487,6 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ✅ Correzione: Avvolgiamo la funzione in useCallback per renderla stabile
   const fetchAllBatches = useCallback(async () => {
     if (!account?.address) return;
     setIsLoadingBatches(true);
@@ -546,9 +546,8 @@ export default function AziendaPage() {
     } finally {
       setIsLoadingBatches(false);
     }
-  }, [account?.address]); // La dipendenza è stabile: l'indirizzo dell'account
+  }, [account?.address]);
 
-  // ✅ Correzione: Usiamo dipendenze stabili per evitare il ciclo infinito
   useEffect(() => {
     if (
       account?.address &&
@@ -704,14 +703,16 @@ export default function AziendaPage() {
         }, 2000);
         setLoadingMessage("");
       },
+      // ✅ MODIFICA: Aggiunto console.error per un debug migliore
       onError: (err) => {
+        console.error("ERRORE DETTAGLIATO TRANSAZIONE:", err); // <-- Aggiunto per debug
         setTxResult({
           status: "error",
           message: err.message
             .toLowerCase()
             .includes("insufficient funds")
             ? "Crediti Insufficienti, Ricarica"
-            : "Errore nella transazione.",
+            : `Errore nella transazione. Controlla la console per i dettagli.`, // Messaggio più utile
         });
         setLoadingMessage("");
       },

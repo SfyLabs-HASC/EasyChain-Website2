@@ -1,6 +1,4 @@
-// FILE: src/pages/GestisciPage.tsx (CORRETTO E OTTIMIZZATO)
-
-import React, { useState, useEffect, useCallback } from 'react'; // Aggiunto useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ConnectButton, useActiveAccount, useReadContract, useSendTransaction } from 'thirdweb/react';
 import { createThirdwebClient, getContract, prepareContractCall, readContract } from 'thirdweb';
@@ -9,12 +7,12 @@ import { supplyChainABI as abi } from '../abi/contractABI';
 import '../App.css';
 import TransactionStatusModal from '../components/TransactionStatusModal';
 
-const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2eb" });
+// ✅ MODIFICA: Aggiornato Client ID e Indirizzo Contratto
+const client = createThirdwebClient({ clientId: "023dd6504a82409b2bc7cb971fd35b16" });
 const contract = getContract({ 
   client, 
   chain: polygon,
-  // NOTA: Assicurati che questo sia l'indirizzo corretto del contratto che stai usando
-  address: "0x2bd72307a73cc7be3f275a81c8edbe775bb08f3e" 
+  address: "0xd0bad36896df719b26683e973f2fc6135f215d4e" 
 });
 
 const EventoCard = ({ eventoInfo }: { eventoInfo: any }) => (
@@ -85,9 +83,14 @@ const AggiungiEventoModal = ({ batchId, contributorName, onClose, onSuccess }: {
 
         sendTransaction(transaction, { 
             onSuccess: () => { setLoadingMessage(''); onSuccess(); },
-            onError: (err) => { setLoadingMessage(''); setTxResult({ status: 'error', message: `Errore durante la transazione: ${err.message}` }); } 
+            // ✅ MODIFICA: Aggiunto console.error per un debug migliore
+            onError: (err) => { 
+                console.error("ERRORE AGGIUNTA EVENTO:", err); // <-- Aggiunto per debug
+                setLoadingMessage(''); 
+                setTxResult({ status: 'error', message: `Errore transazione. Controlla la console per i dettagli.` }); 
+            } 
         });
-    }, [selectedFile, contributorName, formData, batchId, contract, sendTransaction, onSuccess]);
+    }, [selectedFile, contributorName, formData, batchId, sendTransaction, onSuccess]);
     
     const handleConfirmAndSubmit = useCallback(() => {
         if (window.confirm("Vuoi confermare tutti i dati inseriti e procedere a scrivere l'evento?")) {
@@ -212,7 +215,6 @@ export default function GestisciPage() {
     const [txResult, setTxResult] = useState<{ status: 'success' | 'error'; message: string } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // ✅ Hook ottimizzato per info del contributore
     const { data: contributorInfo } = useReadContract({ 
         contract, 
         method: "function getContributorInfo(address) view returns (string, uint256, bool)", 
@@ -220,7 +222,6 @@ export default function GestisciPage() {
         queryOptions: { enabled: !!account, refetchOnWindowFocus: false } 
     });
 
-    // ✅ Hook ottimizzato per il conteggio degli eventi
     const { data: eventCount, refetch: refetchEventCount } = useReadContract({
         contract,
         method: "function getBatchStepCount(uint256)",
@@ -228,7 +229,6 @@ export default function GestisciPage() {
         queryOptions: { enabled: !!batchId, refetchOnWindowFocus: false }
     });
 
-    // ✅ Funzione stabile per caricare i dati base
     const fetchBatchData = useCallback(async () => {
         if (!batchId) return;
         setIsLoading(true);
@@ -243,12 +243,10 @@ export default function GestisciPage() {
         }
     }, [batchId]);
 
-    // ✅ Effetto per caricare i dati base all'avvio
     useEffect(() => {
         fetchBatchData();
     }, [fetchBatchData]);
     
-    // ✅ Effetto separato per caricare gli eventi solo quando eventCount è disponibile
     useEffect(() => {
         const fetchEvents = async () => {
             if (eventCount === undefined || !batchId) return;
@@ -272,7 +270,7 @@ export default function GestisciPage() {
         fetchEvents();
     }, [eventCount, batchId]);
     
-    // ✅ Funzione stabile per la finalizzazione
+    // ✅ MODIFICA: Aggiunto console.error per un debug migliore
     const handleFinalize = useCallback(() => {
         const confirmationMessage = "Conferma finalizzazione iscrizione\n\nSei sicuro di voler finalizzare questa iscrizione?\nDopo questa operazione non potrai più aggiungere eventi o modificare la filiera.\nL’iscrizione sarà considerata completa e chiusa.";
         if (!batchId || !window.confirm(confirmationMessage)) return;
@@ -284,15 +282,17 @@ export default function GestisciPage() {
                 fetchBatchData();
                 refetchEventCount();
             },
-            onError: (err) => setTxResult({ status: 'error', message: `Errore durante la finalizzazione: ${err.message}` })
+            onError: (err) => {
+                console.error("ERRORE FINALIZZAZIONE:", err); // <-- Aggiunto per debug
+                setTxResult({ status: 'error', message: `Errore finalizzazione. Controlla la console per i dettagli.` })
+            }
         });
     }, [batchId, sendTransaction, fetchBatchData, refetchEventCount]);
     
-    // ✅ Funzione stabile per gestire il successo dell'aggiunta evento
     const handleAddEventoSuccess = useCallback(() => {
         setTxResult({ status: 'success', message: 'Evento aggiunto con successo!' });
         setIsModalOpen(false);
-        refetchEventCount(); // Forza l'aggiornamento del conteggio eventi, che a sua volta ricaricherà la lista
+        refetchEventCount();
     }, [refetchEventCount]);
 
     return (
