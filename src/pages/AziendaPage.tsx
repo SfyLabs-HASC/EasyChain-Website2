@@ -393,7 +393,6 @@ const BatchTable = ({
   );
 };
 
-// ✅ MODIFICA: Aggiunte le nuove funzioni come props
 const DashboardHeader = ({
   contributorInfo,
   onNewInscriptionClick,
@@ -515,7 +514,6 @@ export default function AziendaPage() {
     BatchData[]
   >([]);
   
-  // ✅ MODIFICA: Stato di caricamento più specifico
   const [loadingMethod, setLoadingMethod] = useState<'rpc' | 'insight' | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
@@ -524,18 +522,17 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ✅ MODIFICA: Funzione di caricamento via Insight API
   const fetchBatchesViaInsight = useCallback(async () => {
     if (!account?.address) return;
     setLoadingMethod('insight');
-    setAllBatches([]); // Pulisce la lista prima di caricarla
+    setAllBatches([]); 
 
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_signature:
-        "BatchInitialized(address,uint256,string)", // Semplificato per sicurezza, l'ABI completo è lungo
-      limit: "100", // Limite da considerare
+        "BatchInitialized(address,uint256,string)",
+      limit: "100",
     });
 
     try {
@@ -556,11 +553,11 @@ export default function AziendaPage() {
 
       const data = await response.json();
       
-      // Chiamate RPC per ottenere i dettagli completi
       const batchDetailsPromises = data.result.map((event: any) =>
           readContract({
               contract,
-              method: "function getBatchInfo(uint256 _batchId) view returns (tuple(uint256 id, address contributor, string contributorName, string name, string description, string date, string location, string imageIpfsHash, bool isClosed, tuple(string eventName, string description, string date, string location, string attachmentsIpfsHash)[] steps))",
+              abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
+              method: "getBatchInfo", // ✅ CORREZIONE: Semplificata la firma del metodo
               params: [BigInt(event.data.batchId)]
           })
       );
@@ -590,30 +587,30 @@ export default function AziendaPage() {
     }
   }, [account?.address]);
 
-  // ✅ NUOVA: Funzione di caricamento via RPC
   const fetchBatchesViaRpc = useCallback(async () => {
     if (!account?.address) return;
     setLoadingMethod('rpc');
-    setAllBatches([]); // Pulisce la lista
+    setAllBatches([]);
 
     try {
-        // 1. Ottieni gli ID di tutti i batch per il contributore
         const batchIds = await readContract({
             contract,
-            method: "function getBatchesByContributor(address _contributor) view returns (uint256[])",
+            abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
+            method: "getBatchesByContributor", // ✅ CORREZIONE: Semplificata la firma del metodo
             params: [account.address]
         });
 
         if (batchIds.length === 0) {
             setAllBatches([]);
+            setLoadingMethod(null); // ✅ CORREZIONE: Interrompi il caricamento se non ci sono ID
             return;
         }
         
-        // 2. Per ogni ID, ottieni i dettagli completi
         const batchDetailsPromises = batchIds.map(id => 
             readContract({
                 contract,
-                method: "function getBatchInfo(uint256 _batchId) view returns (tuple(uint256 id, address contributor, string contributorName, string name, string description, string date, string location, string imageIpfsHash, bool isClosed, tuple(string eventName, string description, string date, string location, string attachmentsIpfsHash)[] steps))",
+                abi, // ✅ CORREZIONE: Assicurati che l'ABI sia passato
+                method: "getBatchInfo", // ✅ CORREZIONE: Semplificata la firma del metodo
                 params: [id]
             })
         );
@@ -642,17 +639,15 @@ export default function AziendaPage() {
     }
   }, [account?.address]);
 
-  // ✅ NUOVA: Funzione per pulire la lista
   const handleClearBatches = () => {
     setAllBatches([]);
     setFilteredBatches([]);
   };
 
-  // ✅ MODIFICA: useEffect non carica più i dati all'avvio
   useEffect(() => {
     if (account?.address && prevAccountRef.current !== account.address) {
       refetchContributorInfo();
-      handleClearBatches(); // Pulisce la lista al cambio account
+      handleClearBatches();
     }
     prevAccountRef.current = account?.address;
   }, [account?.address, refetchContributorInfo]);
@@ -735,8 +730,6 @@ export default function AziendaPage() {
           status: "success",
           message: "Iscrizione creata con successo! Ricarica la lista per vederla.",
         });
-        // ✅ MODIFICA: Non ricarica più automaticamente
-        // refetchContributorInfo();
         setLoadingMessage("");
       },
       onError: (err) => {
