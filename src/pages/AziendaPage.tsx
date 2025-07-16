@@ -605,18 +605,20 @@ export default function AziendaPage() {
         );
         
         const batchesInfo = await Promise.all(batchDetailsPromises);
+        
+        console.log("Dati grezzi da RPC:", batchesInfo);
 
-        // ✅ CORREZIONE: Aggiunto un filtro per rimuovere risultati 'undefined' prima di mappare.
+        // ✅ CORREZIONE: Filtro più robusto e mappatura tramite indici.
         const formattedBatches = batchesInfo
-            .filter(batch => batch) // Se 'batch' è undefined, viene scartato.
-            .map((batch: any) => ({
-                id: batch.id.toString(), // Ora questa riga è sicura.
-                batchId: batch.id,
-                name: batch.name,
-                description: batch.description,
-                date: batch.date,
-                location: batch.location,
-                isClosed: batch.isClosed,
+            .filter(batch => Array.isArray(batch) && batch.length > 0) 
+            .map((batch: any[]) => ({
+                id: batch[0].toString(),
+                batchId: batch[0],
+                name: batch[3],
+                description: batch[4],
+                date: batch[5],
+                location: batch[6],
+                isClosed: batch[8],
             }));
 
         setAllBatches(
