@@ -12,6 +12,7 @@ import {
   prepareContractCall,
   readContract,
 } from "thirdweb";
+import { getEvents } from "thirdweb/extensions/events";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -94,7 +95,6 @@ const RegistrationForm = () => (
   </div>
 );
 
-// ✅ MODIFICA: Componente semplificato, riceve onShowDescription come prop
 const BatchRow = ({
   batch,
   localId,
@@ -207,7 +207,6 @@ interface BatchData {
   isClosed: boolean;
 }
 
-// ✅ MODIFICA: Riceve e passa onShowDescription
 const BatchTable = ({
   batches,
   nameFilter,
@@ -490,7 +489,6 @@ export default function AziendaPage() {
   
   const [loadingMethod, setLoadingMethod] = useState<'rpc' | 'insight' | null>(null);
 
-  // ✅ NUOVO: Stato per il modale della descrizione
   const [descriptionModalBatch, setDescriptionModalBatch] = useState<BatchData | null>(null);
 
   const [nameFilter, setNameFilter] = useState("");
@@ -499,52 +497,40 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
+  // ✅ MODIFICA: Utilizzo di getEvents con logica di debug
   const fetchBatchesViaInsight = useCallback(async () => {
     if (!account?.address) return;
     setLoadingMethod('insight');
     setAllBatches([]); 
 
-    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
-    const params = new URLSearchParams({
-      contract_address: CONTRACT_ADDRESS,
-      event_signature:
-        "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
-      limit: "100",
-    });
-
     try {
-      const response = await fetch(
-        `${insightUrl}?${params.toString()}`,
-        {
-          method: "GET",
-          headers: {
-            "x-thirdweb-client-id": CLIENT_ID,
-            "Content-Type": "application/json",
-          },
-        },
-      );
+        // Chiamata senza filtri per massima compatibilità
+        const allEvents = await getEvents({
+            contract,
+            eventName: "BatchInitialized",
+        });
+        
+        console.log(`Insight ha trovato ${allEvents.length} eventi 'BatchInitialized' in totale.`);
 
-      if (!response.ok) {
-        throw new Error(`Errore API di Insight: ${response.statusText}`);
-      }
+        // Filtro lato client (nel browser)
+        const userEvents = allEvents.filter(event => event.args.contributor === account.address);
 
-      const data = await response.json();
-      
-      const batchesInfo = data.result.map((event: any) => ({
-          id: event.data.batchId.toString(),
-          batchId: BigInt(event.data.batchId),
-          name: event.data.name,
-          description: event.data.description,
-          date: event.data.date,
-          location: event.data.location,
-          isClosed: event.data.isClosed,
-      }));
+        console.log(`Di questi, ${userEvents.length} appartengono all'utente corrente.`);
 
-      setAllBatches(
-        batchesInfo.sort(
-          (a, b) => Number(b.batchId) - Number(a.batchId),
-        ),
-      );
+        const formattedBatches = userEvents.map((event) => ({
+            id: event.args.batchId.toString(),
+            batchId: event.args.batchId,
+            name: event.args.name,
+            description: event.args.description,
+            date: event.args.date,
+            location: event.args.location,
+            isClosed: event.args.isClosed,
+        }));
+
+        setAllBatches(
+            formattedBatches.sort((a, b) => Number(b.batchId) - Number(a.batchId))
+        );
+
     } catch (error) {
       console.error("Errore nel caricare i lotti da Insight:", error);
       setAllBatches([]);
@@ -861,7 +847,6 @@ export default function AziendaPage() {
         {renderDashboardContent()}
       </main>
 
-      {/* ✅ MODIFICA: Modale renderizzato qui, a livello di pagina */}
       {descriptionModalBatch && (
         <div className="modal-overlay" onClick={() => setDescriptionModalBatch(null)}>
             <div className="modal-content description-modal" onClick={(e) => e.stopPropagation()}>
