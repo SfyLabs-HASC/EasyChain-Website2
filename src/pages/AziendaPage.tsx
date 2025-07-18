@@ -11,8 +11,9 @@ import {
   getContract,
   prepareContractCall,
   readContract,
+  getContractEvents,
+  getBlockNumber, // Importazione necessaria per l'ottimizzazione
 } from "thirdweb";
-import { getEvents } from "thirdweb/extensions/events";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -497,27 +498,32 @@ export default function AziendaPage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
 
-  // ✅ MODIFICA: Utilizzo di getEvents con logica di debug
+  // ✅ MODIFICA: Ottimizzazione della chiamata Insight per cercare solo nell'ultimo anno.
   const fetchBatchesViaInsight = useCallback(async () => {
     if (!account?.address) return;
     setLoadingMethod('insight');
     setAllBatches([]); 
 
     try {
-        // Chiamata senza filtri per massima compatibilità
-        const allEvents = await getEvents({
+        // Ottimizzazione: Calcola il blocco di partenza di circa un anno fa
+        const latestBlock = await getBlockNumber({ client, chain: polygon });
+        const BLOCKS_PER_YEAR_APPROX = 14_500_000; // Blocchi/anno su Polygon (circa 2.2s/blocco)
+        const fromBlock = latestBlock > BigInt(BLOCKS_PER_YEAR_APPROX) 
+            ? latestBlock - BigInt(BLOCKS_PER_YEAR_APPROX) 
+            : 0n; // Se la chain è nuova, parti dall'inizio
+
+        console.log(`Ricerca eventi da blocco: ${fromBlock}`);
+
+        const events = await getContractEvents({
             contract,
             eventName: "BatchInitialized",
+            filters: {
+                contributor: account.address
+            },
+            fromBlock: fromBlock, // Applica il filtro del blocco di partenza
         });
         
-        console.log(`Insight ha trovato ${allEvents.length} eventi 'BatchInitialized' in totale.`);
-
-        // Filtro lato client (nel browser)
-        const userEvents = allEvents.filter(event => event.args.contributor === account.address);
-
-        console.log(`Di questi, ${userEvents.length} appartengono all'utente corrente.`);
-
-        const formattedBatches = userEvents.map((event) => ({
+        const formattedBatches = events.map((event) => ({
             id: event.args.batchId.toString(),
             batchId: event.args.batchId,
             name: event.args.name,
