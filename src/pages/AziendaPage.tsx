@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE FINALE: Aggiunta la lista dei batch caricata da Insight per gli utenti attivi.
+// VERSIONE FINALE: Corretto l'errore nella chiamata a Insight API.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -128,7 +128,6 @@ const ContributorDashboard = ({ data, onNewInscriptionClick }: { data: readonly 
     );
 };
 
-// --- NUOVO COMPONENTE: LISTA BATCH ---
 const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: boolean }) => {
     if (isLoading) {
         return <div className="centered-container"><p>Caricamento iscrizioni create...</p></div>;
@@ -154,7 +153,6 @@ const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: bo
                 <tbody>
                     {batches.map(batch => (
                         <React.Fragment key={batch.id}>
-                            {/* Riga per Desktop */}
                             <tr className="desktop-row">
                                 <td>{batch.batchId.toString()}</td>
                                 <td>{batch.name}</td>
@@ -162,7 +160,6 @@ const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: bo
                                 <td>{batch.location || 'N/D'}</td>
                                 <td>{batch.isClosed ? 'Chiuso' : 'Aperto'}</td>
                             </tr>
-                            {/* Card per Mobile */}
                             <tr className="mobile-card-row">
                                 <td>
                                     <div className="mobile-batch-header">
@@ -200,19 +197,16 @@ export default function AziendaPage() {
     queryOptions: { enabled: !!account },
   });
 
-  // Stati per il wizard "Nuova Iscrizione"
   const [modal, setModal] = useState<"init" | null>(null);
   const [formData, setFormData] = useState(getInitialFormData());
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [txResult, setTxResult] = useState<{ status: "success" | "error"; message: string; } | null>(null);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(1);
-
-  // Stati per la lista dei batch
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
 
-  // --- LOGICA DI FETCH BATCH DA INSIGHT ---
+  // --- LOGICA DI FETCH BATCH DA INSIGHT (CORRETTA) ---
   const fetchBatchesFromInsight = useCallback(async (contributorAddress: string) => {
     setIsLoadingBatches(true);
     setBatches([]);
@@ -220,10 +214,11 @@ export default function AziendaPage() {
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
-      event_name: "BatchInitialized",
-      "filters[contributor]": contributorAddress, // Filtra per l'indirizzo del contributor connesso
+      // CORREZIONE: Usa la firma completa dell'evento per i filtri
+      event_signature: "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
+      "filters[contributor]": contributorAddress,
       order: "desc",
-      limit: "100", // Limite di eventi da recuperare
+      limit: "100",
     });
 
     try {
@@ -238,9 +233,8 @@ export default function AziendaPage() {
       
       const data = await response.json();
       
-      // Insight restituisce gli argomenti già decodificati
       const formattedBatches = data.result.map((event: any): BatchData => ({
-        id: event.data.batchId, // Usiamo il batchId come ID univoco
+        id: event.data.batchId,
         batchId: BigInt(event.data.batchId),
         name: event.data.name,
         description: event.data.description,
@@ -252,34 +246,26 @@ export default function AziendaPage() {
       setBatches(formattedBatches);
     } catch (error) {
       console.error("Errore nel caricare i batch da Insight:", error);
-      setBatches([]); // Resetta in caso di errore
+      setBatches([]);
     } finally {
       setIsLoadingBatches(false);
     }
   }, []);
 
-  // --- useEffect per triggerare il fetch dei batch ---
   useEffect(() => {
-    // Se i dati del contributor sono caricati, l'utente è attivo e l'indirizzo è valido...
     if (contributorData && contributorData[2] && account?.address) {
-      // ...allora carica i suoi batch
       fetchBatchesFromInsight(account.address);
     }
   }, [contributorData, account?.address, fetchBatchesFromInsight]);
 
-
-  // --- GESTORI EVENTI MODALE (Invariati) ---
   const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => setSelectedFile(e.target.files?.[0] || null);
   const openModal = () => { setFormData(getInitialFormData()); setSelectedFile(null); setCurrentStep(1); setTxResult(null); setModal("init"); };
   const handleCloseModal = () => setModal(null);
   const handleNextStep = () => { if (currentStep === 1 && !formData.name.trim()) { alert("Il campo 'Nome Iscrizione' è obbligatorio."); return; } if (currentStep < 6) setCurrentStep((prev) => prev + 1); };
   const handlePrevStep = () => { if (currentStep > 1) setCurrentStep((prev) => prev - 1); };
-
-  // --- LOGICA DI INVIO NUOVA ISCRIZIONE (Invariata) ---
   const handleInitializeBatch = async () => { /* ... codice invariato ... */ };
 
-  // --- LOGICA DI RENDER ---
   if (!account) {
     return (
       <div className="login-container">
