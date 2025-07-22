@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE CORRETTA: Risolve l'errore che causava la pagina nera.
+// VERSIONE CORRETTA: Dashboard dell'utente attivo ora è responsive.
 
 import React, { useState, useEffect } from "react";
 import {
@@ -25,7 +25,7 @@ const AziendaPageStyles = () => (
      .centered-container { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh; text-align: center; }
      .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
      
-     /* Stili per la nuova Dashboard */
+     /* Stili per la Dashboard (Desktop) */
      .contributor-dashboard {
         background-color: #212529;
         border: 1px solid #495057;
@@ -60,18 +60,34 @@ const AziendaPageStyles = () => (
         font-weight: bold;
      }
      
+     /* Stili Responsive per Mobile */
      @media (max-width: 768px) { 
        .app-container-full { padding: 0 1rem; } 
        .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
-       .contributor-dashboard { padding: 1.5rem; }
-       .dashboard-info h2 { font-size: 1.5rem; }
+       
+       /* MODIFICHE PER LA CARD RESPONSIVE */
+       .contributor-dashboard { 
+          padding: 1.5rem;
+          flex-direction: column; /* Impila gli elementi verticalmente */
+          align-items: flex-start; /* Allinea a sinistra */
+       }
+       .dashboard-info h2 { 
+          font-size: 1.5rem; 
+       }
+       .dashboard-actions {
+          width: 100%; /* Occupa tutta la larghezza */
+          margin-top: 1rem;
+       }
+       .dashboard-actions .web3-button {
+          width: 100%; /* Pulsante a larghezza piena */
+       }
      } 
    `}</style>
 );
 
 // --- CONFIGURAZIONE GLOBALE ---
 const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
-const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b"; // Indirizzo corretto
+const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b";
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
 
@@ -82,7 +98,7 @@ const contract = getContract({
   abi,
 });
 
-// --- COMPONENTE FORM DI REGISTRAZIONE (CODICE COMPLETO RIPRISTINATO) ---
+// --- COMPONENTE FORM DI REGISTRAZIONE ---
 const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     const [formData, setFormData] = useState({
         companyName: "",
@@ -204,7 +220,7 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     );
 };
 
-// --- NUOVO COMPONENTE: DASHBOARD PER UTENTE ATTIVO ---
+// --- COMPONENTE DASHBOARD PER UTENTE ATTIVO ---
 const ContributorDashboard = ({ data }: { data: readonly [string, bigint, boolean] }) => {
     const [companyName, credits, isActive] = data;
 
@@ -215,7 +231,6 @@ const ContributorDashboard = ({ data }: { data: readonly [string, bigint, boolea
                 <p>Crediti Rimanenti: <strong>{credits.toString()}</strong></p>
                 <p>Stato: <strong className="status-active">ATTIVO ✅</strong></p>
             </div>
-            {/* Pulsante "Nuova Iscrizione" aggiunto qui per coerenza con l'immagine */}
             <div className="dashboard-actions">
                 <button className="web3-button" style={{padding: '0.8rem 1.5rem', fontSize: '1rem'}}>Nuova Iscrizione</button>
             </div>
@@ -263,10 +278,8 @@ export default function AziendaPage() {
       const isContributorActive = contributorData[2];
       
       if (isContributorActive) {
-        // Utente ATTIVO -> Mostra la nuova dashboard
         return <ContributorDashboard data={contributorData} />;
       } else {
-        // Utente NON ATTIVO -> Mostra il form di registrazione
         return <RegistrationForm walletAddress={account.address} />;
       }
     }
