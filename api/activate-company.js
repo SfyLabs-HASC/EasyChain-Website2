@@ -1,8 +1,9 @@
-// FILE: api/activate-company.js
-// Gestisce TUTTE le modifiche di stato sul database DOPO un'azione on-chain.
+// FILE: /api/activate-company.js
+// VERSIONE CORRETTA: Gestisce correttamente le diverse collezioni (pending vs active).
 
 import admin from 'firebase-admin';
 
+// --- Funzione per inizializzare Firebase Admin in modo sicuro ---
 function initializeFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
@@ -13,42 +14,95 @@ function initializeFirebaseAdmin() {
           privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         }),
       });
-    } catch (error) { console.error('Firebase init error', error.stack); }
+    } catch (error) {
+      console.error('Firebase admin initialization error', error.stack);
+    }
   }
   return admin.firestore();
 }
+
 const db = initializeFirebaseAdmin();
 
+// --- Funzione Principale dell'API ---
 export default async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  const { action, walletAddress, companyName, credits } = req.body;
+
+  if (!action || !walletAddress) {
+    return res.status(400).json({ error: 'Azione e indirizzo wallet sono obbligatori.' });
+  }
+
   try {
-    const { action, walletAddress, companyName, credits } = req.body;
-    if (!action || !walletAddress) return res.status(400).json({ error: "Dati mancanti." });
-
-    const pendingRef = db.collection('pendingCompanies').doc(walletAddress);
-    const activeRef = db.collection('activeCompanies').doc(walletAddress);
-
-    if (action === 'activate') {
-      const doc = await pendingRef.get();
-      if (!doc.exists) return res.status(404).json({ error: "Azienda non trovata tra le pending." });
-      const companyData = doc.data();
+    // Usa uno switch per eseguire l'operazione corretta in base all'azione ricevuta
+    switch (action) {
       
-      const batch = db.batch();
-      batch.set(activeRef, { ...companyData, status: 'active', credits: credits, activatedAt: admin.firestore.FieldValue.serverTimestamp() });
-      batch.delete(pendingRef);
-      await batch.commit();
-      return res.status(200).json({ message: "Database aggiornato: Azienda attivata." });
-    } else if (action === 'deactivate') {
-      await activeRef.update({ status: 'deactivated' });
-      return res.status(200).json({ message: "Database aggiornato: Azienda disattivata." });
-    } else if (action === 'reactivate') {
-        await activeRef.update({ status: 'active' });
-        return res.status(200).json({ message: "Database aggiornato: Azienda riattivata." });
-    } else if (action === 'setCredits') {
-      await activeRef.update({ credits: credits });
-      return res.status(200).json({ message: "Database aggiornato: Crediti impostati." });
+      // ===================================================================
+      // --- CORREZIONE CHIAVE: Logica per 'activate' e 'reactivate' ---
+      case 'activate':
+      case 'reactivate': { // Usiamo le parentesi graffe per creare uno scope locale
+        
+        // Per l'attivazione, i dati originali sono in 'pendingCompanies'
+        const pendingDocRef = db.collection('pendingCompanies').doc(walletAddress);
+        const activeDocRef = db.collection('activeCompanies').doc(walletAddress);
+        
+        const pendingDoc = await pendingDocRef.get();
+        let originalData = {};
+
+        if (pendingDoc.exists) {
+            originalData = pendingDoc.data();
+        } else {
+            // Se non è in pending, potrebbe essere una riattivazione di un account già esistente
+            console.log(`Documento non trovato in pending, si assume una riattivazione per ${walletAddress}`);
+        }
+
+        // Crea/aggiorna il documento nella collezione 'activeCompanies'
+        await activeDocRef.set({
+          ...originalData, // Mantiene i dati originali (email, social, etc.)
+          companyName: companyName, // Usa il nome (potenzialmente aggiornato) dal modale
+          credits: credits,
+          status: 'active',
+          activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        // Se il documento esisteva in 'pending', eliminalo per completare lo "spostamento"
+        if (pendingDoc.exists) {
+            await pendingDocRef.delete();
+        }
+
+        break;
+      }
+      // ===================================================================
+
+      case 'deactivate': {
+        const docRef = db.collection('activeCompanies').doc(walletAddress);
+        await docRef.update({ status: 'deactivated' });
+        break;
+      }
+      
+      case 'setCredits': {
+        const docRef = db.collection('activeCompanies').doc(walletAddress);
+        await docRef.update({ credits: credits });
+        break;
+      }
+
+      case 'changeName': {
+        // Quando si cambia il nome, l'azienda dovrebbe essere già attiva
+        const docRef = db.collection('activeCompanies').doc(walletAddress);
+        await docRef.update({ companyName: companyName });
+        break;
+      }
+
+      default:
+        return res.status(400).json({ error: 'Azione non valida' });
     }
-    
-    res.status(400).json({ error: "Azione non valida." });
-  } catch (error) { res.status(500).json({ error: "Internal Server Error" }); }
+
+    res.status(200).json({ message: 'Operazione completata con successo.' });
+
+  } catch (error) {
+    console.error("Errore nell'API /api/activate-company:", error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 };
