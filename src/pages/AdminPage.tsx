@@ -1,5 +1,5 @@
 // FILE: src/pages/AdminPage.tsx
-// QUESTA È LA VERSIONE FINALE E COMPLETA CHE RISOLVE TUTTI GLI ERRORI
+// VERSIONE AGGIORNATA CON LOGICA MIGLIORATA NEL MODALE DI GESTIONE
 
 import React, { useState, useEffect, useCallback } from "react";
 import { ConnectButton, TransactionButton, useActiveAccount } from "thirdweb/react";
@@ -20,27 +20,38 @@ type Company = {
 
 // Configurazione del Client e del Contratto
 const client = createThirdwebClient({ 
-  clientId: "023dd6504a82409b2bc7cb971fd35b16" // <-- Nuovo Client ID
+  clientId: "023dd6504a82409b2bc7cb971fd35b16"
 });
 
 const contract = getContract({ 
   client, 
   chain: polygon,
-  address: "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b" // <-- Nuovo indirizzo contract
+  address: "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b"
 });
 
 
-// --- Componente Modale per la Modifica (Completo e Corretto) ---
+// --- Componente Modale per la Modifica (AGGIORNATO) ---
 const EditCompanyModal = ({ company, onClose, onUpdate }: { company: Company, onClose: () => void, onUpdate: () => void }) => {
-  const [credits, setCredits] = useState(company.credits || 50);
+  // Stato per i crediti e per il nuovo nome
+  const [credits, setCredits] = useState(company.credits || 0);
+  const [newName, setNewName] = useState(company.companyName);
 
   // Funzione generica per aggiornare il nostro DB dopo un'azione on-chain
-  const updateOffChainStatus = async (action: string) => {
+  // Accetta dati custom per gestire i diversi tipi di aggiornamento (es. cambio nome)
+  const updateOffChainStatus = async (action: string, customData: Partial<Company> = {}) => {
     try {
-      await fetch('/api/activate-company', {
+      const bodyPayload = {
+        action,
+        walletAddress: company.walletAddress,
+        credits: parseInt(String(credits)), // Invia sempre il valore attuale del campo crediti
+        companyName: newName, // Invia sempre il valore attuale del campo nome
+        ...customData,
+      };
+
+      await fetch('/api/activate-company', { // Assicurati che questo endpoint gestisca le varie azioni
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, walletAddress: company.walletAddress, credits: parseInt(String(credits)), companyName: company.companyName }),
+        body: JSON.stringify(bodyPayload),
       });
       onUpdate(); // Ricarica la lista per mostrare i cambiamenti
     } catch (error) {
@@ -77,7 +88,7 @@ const EditCompanyModal = ({ company, onClose, onUpdate }: { company: Company, on
           <div className="modal-actions">
             {company.status === 'pending' && (
               <TransactionButton
-                transaction={() => prepareContractCall({ contract, abi, method: "function addContributor(address, string)", params: [company.walletAddress, company.companyName] })}
+                transaction={() => prepareContractCall({ contract, abi, method: "function addContributor(address, string)", params: [company.walletAddress, newName] })}
                 onTransactionConfirmed={() => {
                   alert("Azienda attivata on-chain!");
                   updateOffChainStatus('activate');
@@ -101,7 +112,7 @@ const EditCompanyModal = ({ company, onClose, onUpdate }: { company: Company, on
             )}
             {company.status === 'deactivated' && (
               <TransactionButton
-                transaction={() => prepareContractCall({ contract, abi, method: "function addContributor(address, string)", params: [company.walletAddress, company.companyName] })}
+                transaction={() => prepareContractCall({ contract, abi, method: "function addContributor(address, string)", params: [company.walletAddress, newName] })}
                 onTransactionConfirmed={() => { alert("Azienda riattivata on-chain!"); updateOffChainStatus('reactivate'); }}
                 onError={(error) => alert(`Errore: ${error.message}`)}
                 className="web3-button"
@@ -112,21 +123,54 @@ const EditCompanyModal = ({ company, onClose, onUpdate }: { company: Company, on
           </div>
         </div>
 
-        {/* 2. SEZIONE GESTIONE CREDITI */}
+        {/* 2. SEZIONE GESTIONE CREDITI (AGGIORNATA) */}
         <div className="form-group" style={{marginTop: '1.5rem'}}>
-          <label>Imposta Crediti</label>
-          <input type="number" value={credits} onChange={(e) => setCredits(Number(e.target.value))} className="form-input" />
+          <label>Gestione Crediti</label>
+          <p>Crediti disponibili: <strong>{company.status === 'pending' ? 0 : company.credits ?? 'N/D'}</strong></p>
+          <input 
+            type="number" 
+            placeholder="Imposta nuovi crediti"
+            value={credits} 
+            onChange={(e) => setCredits(Number(e.target.value))} 
+            className="form-input" 
+            style={{marginTop: '0.5rem'}}
+          />
           <TransactionButton
             transaction={() => prepareContractCall({ contract, abi, method: "function setContributorCredits(address, uint256)", params: [company.walletAddress, BigInt(credits)] })}
             onTransactionConfirmed={() => { alert("Crediti impostati on-chain!"); updateOffChainStatus('setCredits'); }}
             onError={(error) => alert(`Errore: ${error.message}`)}
             className="web3-button" style={{marginTop: '0.5rem', width: '100%'}}
-            disabled={company.status === 'pending'}>
+            disabled={company.status === 'pending'}
+          >
             Aggiorna Crediti
           </TransactionButton>
         </div>
 
-        {/* 3. SEZIONE ELIMINAZIONE */}
+        {/* 3. SEZIONE CAMBIA NOME (NUOVA) */}
+        <div className="form-group" style={{marginTop: '1.5rem'}}>
+            <label>Cambia Nome Azienda</label>
+            <input 
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="form-input"
+                placeholder="Nuovo nome azienda"
+            />
+            <TransactionButton
+                transaction={() => prepareContractCall({ contract, abi, method: "function addContributor(address, string)", params: [company.walletAddress, newName] })}
+                onTransactionConfirmed={() => {
+                    alert("Nome azienda aggiornato on-chain!");
+                    updateOffChainStatus('changeName', { companyName: newName });
+                }}
+                onError={(error) => alert(`Errore: ${error.message}`)}
+                className="web3-button" style={{marginTop: '0.5rem', width: '100%'}}
+                disabled={!newName.trim() || newName === company.companyName}
+            >
+                Cambia Nome
+            </TransactionButton>
+        </div>
+
+        {/* 4. SEZIONE ELIMINAZIONE */}
         {(company.status === 'pending' || company.status === 'deactivated') && (
           <div style={{marginTop: '1.5rem', borderTop: '1px solid #27272a', paddingTop: '1.5rem'}}>
               <button onClick={handleDelete} className="web3-button" style={{backgroundColor: '#ef4444', width: '100%'}}>
@@ -159,8 +203,11 @@ const CompanyList = () => {
             const response = await fetch('/api/get-pending-companies');
             if (!response.ok) { throw new Error(`Errore HTTP: ${response.status}`); }
             const data = await response.json();
-            const pending = (data.pending || []).map((p: any) => ({ ...p, status: 'pending' }));
-            const active = (data.active || []).map((a: any) => ({ ...a, status: a.status || 'active' }));
+            
+            // Assicurati che i dati siano formattati correttamente
+            const pending = (data.pending || []).map((p: any) => ({ ...p, status: 'pending', id: p.walletAddress }));
+            const active = (data.active || []).map((a: any) => ({ ...a, status: a.status || 'active', id: a.walletAddress }));
+
             setAllCompanies([...pending, ...active]);
         } catch (err: any) { setError(`Impossibile caricare i dati: ${err.message}`); }
         setIsLoading(false);
@@ -213,21 +260,21 @@ const AdminContent = () => {
 
     useEffect(() => {
         const checkPermissions = async () => {
-          if (account) {
-            setIsLoading(true);
-            try {
-              const [superOwner, owner] = await Promise.all([
-                readContract({ contract, abi, method: "function superOwner() view returns (address)" }),
-                readContract({ contract, abi, method: "function owner() view returns (address)" })
-              ]);
-              const isAdmin = account.address.toLowerCase() === superOwner.toLowerCase() || (owner && account.address.toLowerCase() === owner.toLowerCase());
-              setIsAllowed(isAdmin);
-            } catch (e) { setIsAllowed(false); }
-            finally { setIsLoading(false); }
-          } else {
-            setIsLoading(false);
-            setIsAllowed(false);
-          }
+            if (account) {
+                setIsLoading(true);
+                try {
+                    const [superOwner, owner] = await Promise.all([
+                        readContract({ contract, abi, method: "function superOwner() view returns (address)" }),
+                        readContract({ contract, abi, method: "function owner() view returns (address)" })
+                    ]);
+                    const isAdmin = account.address.toLowerCase() === superOwner.toLowerCase() || (owner && account.address.toLowerCase() === owner.toLowerCase());
+                    setIsAllowed(isAdmin);
+                } catch (e) { setIsAllowed(false); }
+                finally { setIsLoading(false); }
+            } else {
+                setIsLoading(false);
+                setIsAllowed(false);
+            }
         };
         checkPermissions();
     }, [account]);
