@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE SEMPLIFICATA: Mostra solo il form di registrazione o un messaggio di stato.
+// VERSIONE CORRETTA: Risolve l'errore che causava la pagina nera.
 
 import React, { useState, useEffect } from "react";
 import {
@@ -16,24 +16,62 @@ import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
 import "../App.css";
 
-// --- Stili CSS essenziali ---
+// --- Stili CSS ---
 const AziendaPageStyles = () => (
   <style>{` 
      .app-container-full { padding: 0 2rem; } 
-     .main-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; } 
+     .main-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; } 
      .header-title { font-size: 1.75rem; font-weight: bold; }
      .centered-container { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 70vh; text-align: center; }
      .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+     
+     /* Stili per la nuova Dashboard */
+     .contributor-dashboard {
+        background-color: #212529;
+        border: 1px solid #495057;
+        border-radius: 12px;
+        padding: 2rem;
+        width: 100%;
+        max-width: 900px;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+     }
+     .dashboard-info h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 2rem;
+        font-weight: 600;
+     }
+     .dashboard-info p {
+        margin: 0.5rem 0;
+        font-size: 1.1rem;
+        color: #adb5bd;
+     }
+     .dashboard-info p strong {
+        color: #f8f9fa;
+        margin-left: 0.5rem;
+     }
+     .status-active {
+        color: #28a745;
+        font-weight: bold;
+     }
+     
      @media (max-width: 768px) { 
        .app-container-full { padding: 0 1rem; } 
        .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
+       .contributor-dashboard { padding: 1.5rem; }
+       .dashboard-info h2 { font-size: 1.5rem; }
      } 
    `}</style>
 );
 
 // --- CONFIGURAZIONE GLOBALE ---
 const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
-const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b";
+const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b"; // Indirizzo corretto
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
 
@@ -44,7 +82,7 @@ const contract = getContract({
   abi,
 });
 
-// --- COMPONENTE FORM DI REGISTRAZIONE ---
+// --- COMPONENTE FORM DI REGISTRAZIONE (CODICE COMPLETO RIPRISTINATO) ---
 const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     const [formData, setFormData] = useState({
         companyName: "",
@@ -166,6 +204,26 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     );
 };
 
+// --- NUOVO COMPONENTE: DASHBOARD PER UTENTE ATTIVO ---
+const ContributorDashboard = ({ data }: { data: readonly [string, bigint, boolean] }) => {
+    const [companyName, credits, isActive] = data;
+
+    return (
+        <div className="contributor-dashboard">
+            <div className="dashboard-info">
+                <h2>{companyName}</h2>
+                <p>Crediti Rimanenti: <strong>{credits.toString()}</strong></p>
+                <p>Stato: <strong className="status-active">ATTIVO ✅</strong></p>
+            </div>
+            {/* Pulsante "Nuova Iscrizione" aggiunto qui per coerenza con l'immagine */}
+            <div className="dashboard-actions">
+                <button className="web3-button" style={{padding: '0.8rem 1.5rem', fontSize: '1rem'}}>Nuova Iscrizione</button>
+            </div>
+        </div>
+    );
+};
+
+
 // --- COMPONENTE PRINCIPALE ---
 export default function AziendaPage() {
   const account = useActiveAccount();
@@ -201,25 +259,18 @@ export default function AziendaPage() {
       return <p style={{ color: "red" }}>Errore nel recuperare i dati dell'account. Riprova.</p>;
     }
 
-    // Se contributorData è disponibile, controlliamo lo stato
     if (contributorData) {
       const isContributorActive = contributorData[2];
       
       if (isContributorActive) {
-        // Utente è un contributor attivo
-        return (
-          <div className="card">
-            <h2>✅ Azienda Attivata</h2>
-            <p>Il tuo account è attivo e puoi operare sulla piattaforma.</p>
-          </div>
-        );
+        // Utente ATTIVO -> Mostra la nuova dashboard
+        return <ContributorDashboard data={contributorData} />;
       } else {
-        // Utente non è un contributor attivo, mostra il form
+        // Utente NON ATTIVO -> Mostra il form di registrazione
         return <RegistrationForm walletAddress={account.address} />;
       }
     }
 
-    // Caso di fallback, non dovrebbe accadere se la logica è corretta
     return <p>Impossibile determinare lo stato dell'account.</p>;
   };
 
