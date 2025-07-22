@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE CORRETTA: Dashboard dell'utente attivo ora è responsive.
+// VERSIONE CORRETTA: Stili responsive resi più specifici per evitare conflitti.
 
 import React, { useState, useEffect } from "react";
 import {
@@ -65,20 +65,20 @@ const AziendaPageStyles = () => (
        .app-container-full { padding: 0 1rem; } 
        .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
        
-       /* MODIFICHE PER LA CARD RESPONSIVE */
-       .contributor-dashboard { 
+       /* MODIFICHE PER LA CARD RESPONSIVE (CON SELETTORE PIÙ SPECIFICO) */
+       .centered-container .contributor-dashboard { 
           padding: 1.5rem;
           flex-direction: column; /* Impila gli elementi verticalmente */
           align-items: flex-start; /* Allinea a sinistra */
        }
-       .dashboard-info h2 { 
+       .centered-container .dashboard-info h2 { 
           font-size: 1.5rem; 
        }
-       .dashboard-actions {
+       .centered-container .dashboard-actions {
           width: 100%; /* Occupa tutta la larghezza */
           margin-top: 1rem;
        }
-       .dashboard-actions .web3-button {
+       .centered-container .dashboard-actions .web3-button {
           width: 100%; /* Pulsante a larghezza piena */
        }
      } 
