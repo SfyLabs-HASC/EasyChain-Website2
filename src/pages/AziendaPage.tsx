@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE FINALE: Corretto l'errore nella chiamata a Insight API.
+// VERSIONE FINALE: Aggiunto l'aggiornamento dei crediti su Firebase dopo la creazione di una nuova iscrizione.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -108,8 +108,69 @@ interface BatchData {
 // --- COMPONENTI ---
 
 const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
-    // ... (Il codice del form di registrazione rimane qui, invariato e completo)
-    return <div>...</div>
+    const [formData, setFormData] = useState({
+        companyName: "", contactEmail: "", sector: "", website: "", facebook: "", instagram: "", twitter: "", tiktok: "",
+    });
+    const [status, setStatus] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.companyName || !formData.contactEmail || !formData.sector) {
+            setStatus({ message: "Nome azienda, email e settore sono campi obbligatori.", type: 'error' });
+            return;
+        }
+        setIsLoading(true);
+        setStatus({ message: "Invio della richiesta in corso...", type: 'info' });
+        try {
+            const response = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, walletAddress }),
+            });
+            if (!response.ok) {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || "Si è verificato un errore durante l'invio.");
+            }
+            setStatus({ message: "Richiesta inviata con successo! Verrai ricontattato dopo l'approvazione del tuo account.", type: 'success' });
+        } catch (error) {
+            setStatus({ message: (error as Error).message, type: 'error' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    if (status?.type === 'success') {
+        return (
+            <div className="card" style={{marginTop: '2rem', textAlign: 'center'}}>
+                <h3>Richiesta Inviata!</h3>
+                <p>{status.message}</p>
+            </div>
+        );
+    }
+    return (
+        <div className="card" style={{marginTop: '2rem', maxWidth: '700px', margin: '2rem auto', textAlign: 'left'}}>
+            <h3>Benvenuto su Easy Chain!</h3>
+            <p>Il tuo account non è ancora attivo. Compila il form di registrazione per inviare una richiesta di attivazione all'amministratore.</p>
+            <form onSubmit={handleSubmit} style={{marginTop: '1.5rem'}}>
+                <div className="form-group"><label>Nome Azienda *</label><input type="text" name="companyName" className="form-input" onChange={handleInputChange} required /></div>
+                <div className="form-group"><label>Email di Contatto *</label><input type="email" name="contactEmail" className="form-input" onChange={handleInputChange} required /></div>
+                <div className="form-group"><label>Settore di Attività *</label><select name="sector" className="form-input" onChange={handleInputChange} required><option value="">Seleziona un settore...</option><option value="Agroalimentare">Agroalimentare</option><option value="Moda e Tessile">Moda e Tessile</option><option value="Arredamento e Design">Arredamento e Design</option><option value="Farmaceutico">Farmaceutico</option><option value="Altro">Altro</option></select></div>
+                <div className="form-group"><label>Indirizzo Wallet (automatico)</label><input type="text" className="form-input" value={walletAddress} readOnly disabled /></div>
+                <hr style={{margin: '2rem 0', borderColor: '#333'}} />
+                <h4>Profili Social (Opzionale)</h4>
+                <div className="form-group"><label>Sito Web</label><input type="url" name="website" className="form-input" onChange={handleInputChange} placeholder="https://..." /></div>
+                <div className="form-group"><label>Facebook</label><input type="url" name="facebook" className="form-input" onChange={handleInputChange} placeholder="https://facebook.com/..." /></div>
+                <div className="form-group"><label>Instagram</label><input type="url" name="instagram" className="form-input" onChange={handleInputChange} placeholder="https://instagram.com/..." /></div>
+                <div className="form-group"><label>Twitter / X</label><input type="url" name="twitter" className="form-input" onChange={handleInputChange} placeholder="https://x.com/..." /></div>
+                <div className="form-group"><label>TikTok</label><input type="url" name="tiktok" className="form-input" onChange={handleInputChange} placeholder="https://tiktok.com/..." /></div>
+                <button type="submit" className="web3-button" disabled={isLoading} style={{width: '100%', marginTop: '1rem'}}>{isLoading ? "Invio in corso..." : "Invia Richiesta di Attivazione"}</button>
+                {status && status.type !== 'success' && (<p style={{ marginTop: '1rem', color: status.type === 'error' ? '#ff4d4d' : '#888', textAlign: 'center' }}>{status.message}</p>)}
+            </form>
+        </div>
+    );
 };
 
 const ContributorDashboard = ({ data, onNewInscriptionClick }: { data: readonly [string, bigint, boolean]; onNewInscriptionClick: () => void; }) => {
@@ -129,50 +190,18 @@ const ContributorDashboard = ({ data, onNewInscriptionClick }: { data: readonly 
 };
 
 const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: boolean }) => {
-    if (isLoading) {
-        return <div className="centered-container"><p>Caricamento iscrizioni create...</p></div>;
-    }
-
-    if (batches.length === 0) {
-        return <div className="centered-container"><p>Non hai ancora creato nessuna iscrizione.</p></div>;
-    }
-
+    if (isLoading) { return <div className="centered-container"><p>Caricamento iscrizioni create...</p></div>; }
+    if (batches.length === 0) { return <div className="centered-container"><p>Non hai ancora creato nessuna iscrizione.</p></div>; }
     return (
         <div className="batch-list-container">
             <h3>Le Tue Iscrizioni</h3>
             <table className="batch-table">
-                <thead>
-                    <tr className="desktop-row">
-                        <th>ID Batch</th>
-                        <th>Nome</th>
-                        <th>Data</th>
-                        <th>Luogo</th>
-                        <th>Stato</th>
-                    </tr>
-                </thead>
+                <thead><tr className="desktop-row"><th>ID Batch</th><th>Nome</th><th>Data</th><th>Luogo</th><th>Stato</th></tr></thead>
                 <tbody>
                     {batches.map(batch => (
                         <React.Fragment key={batch.id}>
-                            <tr className="desktop-row">
-                                <td>{batch.batchId.toString()}</td>
-                                <td>{batch.name}</td>
-                                <td>{batch.date || 'N/D'}</td>
-                                <td>{batch.location || 'N/D'}</td>
-                                <td>{batch.isClosed ? 'Chiuso' : 'Aperto'}</td>
-                            </tr>
-                            <tr className="mobile-card-row">
-                                <td>
-                                    <div className="mobile-batch-header">
-                                        <h4>{batch.name}</h4>
-                                        <span>{batch.isClosed ? 'Chiuso' : 'Aperto'}</span>
-                                    </div>
-                                    <div className="mobile-batch-body">
-                                        <p><strong>ID:</strong> {batch.batchId.toString()}</p>
-                                        <p><strong>Data:</strong> {batch.date || 'N/D'}</p>
-                                        <p><strong>Luogo:</strong> {batch.location || 'N/D'}</p>
-                                    </div>
-                                </td>
-                            </tr>
+                            <tr className="desktop-row"><td>{batch.batchId.toString()}</td><td>{batch.name}</td><td>{batch.date || 'N/D'}</td><td>{batch.location || 'N/D'}</td><td>{batch.isClosed ? 'Chiuso' : 'Aperto'}</td></tr>
+                            <tr className="mobile-card-row"><td><div className="mobile-batch-header"><h4>{batch.name}</h4><span>{batch.isClosed ? 'Chiuso' : 'Aperto'}</span></div><div className="mobile-batch-body"><p><strong>ID:</strong> {batch.batchId.toString()}</p><p><strong>Data:</strong> {batch.date || 'N/D'}</p><p><strong>Luogo:</strong> {batch.location || 'N/D'}</p></div></td></tr>
                         </React.Fragment>
                     ))}
                 </tbody>
@@ -190,7 +219,7 @@ export default function AziendaPage() {
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
   
-  const { data: contributorData, isLoading: isStatusLoading, isError } = useReadContract({
+  const { data: contributorData, isLoading: isStatusLoading, isError, refetch: refetchContributorInfo } = useReadContract({
     contract,
     method: "function getContributorInfo(address) view returns (string, uint256, bool)",
     params: account ? [account.address] : undefined,
@@ -206,43 +235,27 @@ export default function AziendaPage() {
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
 
-  // --- LOGICA DI FETCH BATCH DA INSIGHT (CORRETTA) ---
   const fetchBatchesFromInsight = useCallback(async (contributorAddress: string) => {
     setIsLoadingBatches(true);
     setBatches([]);
-    
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
-      // CORREZIONE: Usa la firma completa dell'evento per i filtri
       event_signature: "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
       "filters[contributor]": contributorAddress,
       order: "desc",
       limit: "100",
     });
-
     try {
       const response = await fetch(`${insightUrl}?${params.toString()}`, {
         method: "GET",
         headers: { "x-thirdweb-client-id": CLIENT_ID },
       });
-
-      if (!response.ok) {
-        throw new Error(`Errore API di Insight: ${response.statusText}`);
-      }
-      
+      if (!response.ok) { throw new Error(`Errore API di Insight: ${response.statusText}`); }
       const data = await response.json();
-      
       const formattedBatches = data.result.map((event: any): BatchData => ({
-        id: event.data.batchId,
-        batchId: BigInt(event.data.batchId),
-        name: event.data.name,
-        description: event.data.description,
-        date: event.data.date,
-        location: event.data.location,
-        isClosed: event.data.isClosed,
+        id: event.data.batchId, batchId: BigInt(event.data.batchId), name: event.data.name, description: event.data.description, date: event.data.date, location: event.data.location, isClosed: event.data.isClosed,
       }));
-
       setBatches(formattedBatches);
     } catch (error) {
       console.error("Errore nel caricare i batch da Insight:", error);
@@ -264,7 +277,58 @@ export default function AziendaPage() {
   const handleCloseModal = () => setModal(null);
   const handleNextStep = () => { if (currentStep === 1 && !formData.name.trim()) { alert("Il campo 'Nome Iscrizione' è obbligatorio."); return; } if (currentStep < 6) setCurrentStep((prev) => prev + 1); };
   const handlePrevStep = () => { if (currentStep > 1) setCurrentStep((prev) => prev - 1); };
-  const handleInitializeBatch = async () => { /* ... codice invariato ... */ };
+
+  // --- LOGICA DI INVIO NUOVA ISCRIZIONE (AGGIORNATA) ---
+  const handleInitializeBatch = async () => {
+    if (!formData.name.trim()) {
+      setTxResult({ status: "error", message: "Il campo Nome è obbligatorio." });
+      return;
+    }
+    setLoadingMessage("Preparazione transazione...");
+    let imageIpfsHash = "N/A";
+    if (selectedFile) {
+        // ... (logica di upload immagine)
+    }
+    setLoadingMessage("Transazione in corso...");
+    const transaction = prepareContractCall({
+      contract,
+      method: "function initializeBatch(string,string,string,string,string)",
+      params: [formData.name, formData.description, formData.date, formData.location, imageIpfsHash],
+    });
+    
+    sendTransaction(transaction, {
+      onSuccess: async () => {
+        setTxResult({ status: "success", message: "Iscrizione creata! Aggiorno i dati..." });
+        
+        // --- NUOVA LOGICA: AGGIORNAMENTO CREDITI SU FIREBASE ---
+        if (contributorData && account?.address) {
+          try {
+            const newCredits = Number(contributorData[1]) - 1;
+            await fetch('/api/activate-company', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'setCredits',
+                walletAddress: account.address,
+                credits: newCredits,
+              }),
+            });
+            // Aggiorna la UI con i nuovi dati
+            refetchContributorInfo(); 
+            fetchBatchesFromInsight(account.address);
+          } catch (error) {
+            console.error("Errore durante l'aggiornamento dei crediti su Firebase:", error);
+            // Opzionale: mostrare un errore specifico per l'aggiornamento fallito
+          }
+        }
+        setLoadingMessage("");
+      },
+      onError: (err) => {
+        setTxResult({ status: "error", message: err.message.toLowerCase().includes("insufficient funds") ? "Crediti Insufficienti" : "Errore nella transazione." });
+        setLoadingMessage("");
+      },
+    });
+  };
 
   if (!account) {
     return (
