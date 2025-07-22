@@ -19,11 +19,14 @@ type Company = {
 };
 
 // Configurazione del Client e del Contratto
-const client = createThirdwebClient({ clientId: "e40dfd747fabedf48c5837fb79caf2eb" });
+const client = createThirdwebClient({ 
+  clientId: "023dd6504a82409b2bc7cb971fd35b16" // <-- Nuovo Client ID
+});
+
 const contract = getContract({ 
   client, 
   chain: polygon,
-  address: "0x4a866C3A071816E3186e18cbE99a3339f4571302"
+  address: "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b" // <-- Nuovo indirizzo contract
 });
 
 
