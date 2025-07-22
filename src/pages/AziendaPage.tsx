@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE COMPLETA: Unisce la dashboard, la lista batch da Insight, il wizard completo e il form di registrazione.
+// VERSIONE COMPLETA: Aggiornato con il contratto e i parametri corretti per la chiamata a Insight.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -75,9 +75,9 @@ const AziendaPageStyles = () => (
    `}</style>
 );
 
-// --- CONFIGURAZIONE GLOBALE ---
+// --- CONFIGURAZIONE GLOBALE (AGGIORNATA) ---
 const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
-const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b";
+const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
 
@@ -97,6 +97,8 @@ interface BatchData {
   date: string;
   location: string;
   isClosed: boolean;
+  contributorName: string;
+  imageIpfsHash: string;
 }
 
 // --- COMPONENTI ---
@@ -232,6 +234,8 @@ export default function AziendaPage() {
     setIsLoadingBatches(true);
     setBatches([]);
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
+    
+    // --- CORREZIONE: Usa i parametri corretti come nel file index.html ---
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_signature: "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
@@ -239,6 +243,7 @@ export default function AziendaPage() {
       order: "desc",
       limit: "100",
     });
+
     try {
       const response = await fetch(`${insightUrl}?${params.toString()}`, {
         method: "GET",
@@ -246,8 +251,17 @@ export default function AziendaPage() {
       });
       if (!response.ok) { throw new Error(`Errore API di Insight: ${response.statusText}`); }
       const data = await response.json();
+      
       const formattedBatches = data.result.map((event: any): BatchData => ({
-        id: event.data.batchId, batchId: BigInt(event.data.batchId), name: event.data.name, description: event.data.description, date: event.data.date, location: event.data.location, isClosed: event.data.isClosed,
+        id: event.data.batchId,
+        batchId: BigInt(event.data.batchId),
+        name: event.data.name,
+        description: event.data.description,
+        date: event.data.date,
+        location: event.data.location,
+        isClosed: event.data.isClosed,
+        contributorName: event.data.contributorName,
+        imageIpfsHash: event.data.imageIpfsHash,
       }));
       setBatches(formattedBatches);
     } catch (error) {
