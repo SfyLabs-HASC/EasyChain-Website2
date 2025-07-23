@@ -1,5 +1,5 @@
 // FILE: /api/insight-proxy.js
-// VERSIONE CON LOG DI DEBUG per verificare la variabile d'ambiente.
+// VERSIONE DI TEST: Il Client ID è inserito direttamente per escludere problemi con le variabili d'ambiente.
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -12,18 +12,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Parametri mancanti.' });
   }
 
-  // --- TEST DI DEBUG ---
-  // Leggiamo la variabile d'ambiente da Vercel.
-  const clientId = process.env.THIRDWEB_CLIENT_ID;
-  
-  // Scriviamo nei log di Vercel il valore che abbiamo letto.
-  console.log(`Valore di THIRDWEB_CLIENT_ID letto da Vercel: ${clientId}`);
-  // --------------------
-
-  if (!clientId) {
-    console.error("ERRORE CRITICO: La variabile d'ambiente THIRDWEB_CLIENT_ID non è impostata o non è leggibile su Vercel.");
-    return res.status(500).json({ error: 'Configurazione del server incompleta.' });
-  }
+  // --- PROVA DI DEBUG: Inseriamo il Client ID direttamente nel codice ---
+  // Se questo funziona, il problema è al 100% nella configurazione delle variabili d'ambiente su Vercel.
+  const clientId = "023dd6504a82409b2bc7cb971fd35b16";
+  // --------------------------------------------------------------------
 
   const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
   const params = new URLSearchParams({
