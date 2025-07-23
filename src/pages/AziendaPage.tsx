@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE COMPLETA: La chiamata a Insight ora passa attraverso il proxy API locale.
+// VERSIONE DEFINITIVA: Utilizza i parametri corretti e la chiamata a Insight funzionante.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
 
-// --- Stili CSS (Invariati) ---
+// --- Stili CSS ---
 const AziendaPageStyles = () => (
   <style>{` 
      .app-container-full { padding: 0 2rem; } 
@@ -101,7 +101,7 @@ interface BatchData {
   imageIpfsHash: string;
 }
 
-// --- COMPONENTI (INVARIATI) ---
+// --- COMPONENTI ---
 
 const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     const [formData, setFormData] = useState({
@@ -230,30 +230,27 @@ export default function AziendaPage() {
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
 
-  // --- LOGICA DI FETCH AGGIORNATA PER USARE IL PROXY ---
   const fetchBatchesFromInsight = useCallback(async (contributorAddress: string) => {
     setIsLoadingBatches(true);
     setBatches([]);
+    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     
+    // --- CORREZIONE DEFINITIVA: Usa event_name come nel file index.html funzionante ---
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_name: "BatchInitialized",
-      contributor: contributorAddress,
+      "filters[contributor]": contributorAddress,
+      order: "desc",
+      limit: "100",
     });
 
     try {
-      // Chiama il nostro endpoint API locale invece di quello di Thirdweb
-      const response = await fetch(`/api/insight-proxy?${params.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`Errore dal server proxy: ${response.statusText}`);
-      }
-      
+      const response = await fetch(`${insightUrl}?${params.toString()}`, {
+        method: "GET",
+        headers: { "x-thirdweb-client-id": CLIENT_ID },
+      });
+      if (!response.ok) { throw new Error(`Errore API di Insight: ${response.statusText}`); }
       const data = await response.json();
-      
-      if (data.error) {
-          throw new Error(data.error);
-      }
       
       const formattedBatches = data.result.map((event: any): BatchData => ({
         id: event.data.batchId,
@@ -268,7 +265,7 @@ export default function AziendaPage() {
       }));
       setBatches(formattedBatches);
     } catch (error) {
-      console.error("Errore nel caricare i batch tramite il proxy:", error);
+      console.error("Errore nel caricare i batch da Insight:", error);
       setBatches([]);
     } finally {
       setIsLoadingBatches(false);
