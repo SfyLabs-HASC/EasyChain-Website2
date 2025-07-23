@@ -1,5 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE CORRETTA: Risolve l'errore di sintassi che bloccava il build su Vercel.
+// VERSIONE DEFINITIVA: Utilizza i parametri corretti e la chiamata a Insight funzionante.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
 
-// --- Stili CSS (Invariati) ---
+// --- Stili CSS ---
 const AziendaPageStyles = () => (
   <style>{` 
      .app-container-full { padding: 0 2rem; } 
@@ -235,6 +235,7 @@ export default function AziendaPage() {
     setBatches([]);
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     
+    // --- CORREZIONE DEFINITIVA: Usa event_name come nel file index.html funzionante ---
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_name: "BatchInitialized",
