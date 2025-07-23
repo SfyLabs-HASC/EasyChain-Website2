@@ -15,6 +15,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Parametri mancanti: contract_address, event_name, e contributor sono richiesti.' });
   }
 
+  // --- MODIFICA: Client ID inserito direttamente ---
+  // NOTA: Questo funziona, ma la pratica migliore è usare le variabili d'ambiente
+  // per mantenere la configurazione separata dal codice.
+  const clientId = "023dd6504a82409b2bc7cb971fd35b16";
+
   // Costruisce l'URL per l'API di Thirdweb Insight
   const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
   const params = new URLSearchParams({
@@ -30,9 +35,7 @@ export default async function handler(req, res) {
     const response = await fetch(`${insightUrl}?${params.toString()}`, {
       method: 'GET',
       headers: {
-        // Usa la variabile d'ambiente configurata su Vercel.
-        // Assicurati di aver impostato una variabile chiamata THIRDWEB_CLIENT_ID nelle impostazioni del tuo progetto Vercel.
-        'x-thirdweb-client-id': process.env.THIRDWEB_CLIENT_ID, 
+        'x-thirdweb-client-id': clientId, // Usa la variabile definita sopra
         'Content-Type': 'application/json'
       },
     });
