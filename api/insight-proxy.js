@@ -1,5 +1,5 @@
 // FILE: /api/insight-proxy.js
-// Questo endpoint agisce da intermediario per le chiamate a Thirdweb Insight, risolvendo i problemi di CORS.
+// VERSIONE DEFINITIVA: Utilizza le variabili d'ambiente di Vercel in modo sicuro.
 
 export default async function handler(req, res) {
   // Accetta solo richieste di tipo GET
@@ -15,10 +15,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Parametri mancanti: contract_address, event_name, e contributor sono richiesti.' });
   }
 
-  // --- MODIFICA: Client ID inserito direttamente ---
-  // NOTA: Questo funziona, ma la pratica migliore è usare le variabili d'ambiente
-  // per mantenere la configurazione separata dal codice.
-  const clientId = "023dd6504a82409b2bc7cb971fd35b16";
+  // Legge il Client ID dalle variabili d'ambiente di Vercel.
+  // Questo è il modo corretto e sicuro.
+  const clientId = process.env.THIRDWEB_CLIENT_ID;
+
+  // Se la variabile non è impostata su Vercel, restituisce un errore chiaro.
+  if (!clientId) {
+    console.error("ERRORE CRITICO: La variabile d'ambiente THIRDWEB_CLIENT_ID non è impostata su Vercel.");
+    return res.status(500).json({ error: 'Configurazione del server incompleta.' });
+  }
 
   // Costruisce l'URL per l'API di Thirdweb Insight
   const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
     const response = await fetch(`${insightUrl}?${params.toString()}`, {
       method: 'GET',
       headers: {
-        'x-thirdweb-client-id': clientId, // Usa la variabile definita sopra
+        'x-thirdweb-client-id': clientId,
         'Content-Type': 'application/json'
       },
     });
