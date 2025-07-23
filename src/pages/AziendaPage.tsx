@@ -238,7 +238,7 @@ export default function AziendaPage() {
     // --- CORREZIONE: Usa i parametri corretti come nel file index.html ---
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
-      event_signature: "BatchInitialized(address,uint256,string,string,string,string,string,string,bool)",
+      event_name: "BatchInitialized",
       "filters[contributor]": contributorAddress,
       order: "desc",
       limit: "100",
