@@ -1,8 +1,8 @@
 // FILE: src/pages/AziendaPage.tsx
-// VERSIONE DEFINITIVA: Utilizza i parametri corretti e la chiamata a Insight funzionante.
+// VERSIONE CON CHECK DELLO STATO SU FIREBASE
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ConnectButton,
   useActiveAccount,
@@ -21,7 +21,7 @@ import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
 
-// --- Stili CSS ---
+// --- Stili CSS (invariato) ---
 const AziendaPageStyles = () => (
   <style>{` 
       .app-container-full { padding: 0 2rem; } 
@@ -75,8 +75,8 @@ const AziendaPageStyles = () => (
     `}</style>
 );
 
-// --- CONFIGURAZIONE GLOBALE (AGGIORNATA) ---
-const CLIENT_ID = "023cdd6504a82409b2bc7cb971fd35b16";
+// --- CONFIGURAZIONE GLOBALE ---
+const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
 const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
@@ -101,20 +101,17 @@ interface BatchData {
   imageIpfsHash: string;
 }
 
-// --- COMPONENTI ---
-
+// --- COMPONENTI (invariati) ---
 const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     const [formData, setFormData] = useState({
         companyName: "", contactEmail: "", sector: "", website: "", facebook: "", instagram: "", twitter: "", tiktok: "",
     });
     const [status, setStatus] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.companyName || !formData.contactEmail || !formData.sector) {
@@ -123,7 +120,6 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
         }
         setIsLoading(true);
         setStatus({ message: "Invio della richiesta in corso...", type: 'info' });
-
         try {
             const response = await fetch('/api/send-email', {
                 method: 'POST',
@@ -141,7 +137,6 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
             setIsLoading(false);
         }
     };
-
     if (status?.type === 'success') {
         return (
             <div className="card" style={{marginTop: '2rem', textAlign: 'center'}}>
@@ -150,7 +145,6 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
             </div>
         );
     }
-
     return (
         <div className="card" style={{marginTop: '2rem', maxWidth: '700px', margin: '2rem auto', textAlign: 'left'}}>
             <h3>Benvenuto su Easy Chain!</h3>
@@ -193,7 +187,6 @@ const DashboardHeader = ({ data, onNewInscriptionClick }: { data: readonly [stri
 const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: boolean }) => {
     if (isLoading) { return <div className="centered-container"><p>Caricamento iscrizioni create...</p></div>; }
     if (batches.length === 0) { return <div className="centered-container"><p>Non hai ancora creato nessuna iscrizione.</p></div>; }
-
     return (
         <div className="batch-list-container">
             <h3>Le Tue Iscrizioni</h3>
@@ -212,6 +205,7 @@ const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: bo
     );
 };
 
+
 const getInitialFormData = () => ({ name: "", description: "", date: "", location: "" });
 const truncateText = (text: string, maxLength: number) => { if (!text) return text; return text.length > maxLength ? text.substring(0, maxLength) + "..." : text; };
 
@@ -219,13 +213,20 @@ const truncateText = (text: string, maxLength: number) => { if (!text) return te
 export default function AziendaPage() {
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
-  
+
+  // Hook per leggere i dati DALLA BLOCKCHAIN (nome azienda, crediti)
+  // Verrà usato solo se l'utente è 'attivo' su Firebase
   const { data: contributorData, isLoading: isStatusLoading, isError, refetch: refetchContributorInfo } = useReadContract({
     contract,
     method: "function getContributorInfo(address) view returns (string, uint256, bool)",
     params: account ? [account.address] : undefined,
+    // Abilitato solo se l'utente è loggato.
     queryOptions: { enabled: !!account },
   });
+
+  // --- NUOVO ---
+  // Stato per salvare il risultato del check su Firebase
+  const [accountStatus, setAccountStatus] = useState<"loading" | "active" | "inactive" | "error">("loading");
 
   const [modal, setModal] = useState<"init" | null>(null);
   const [formData, setFormData] = useState(getInitialFormData());
@@ -235,6 +236,43 @@ export default function AziendaPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [isLoadingBatches, setIsLoadingBatches] = useState(false);
+  
+  // --- NUOVO ---
+  // useEffect per controllare lo stato dell'account su Firebase quando l'utente si connette
+  useEffect(() => {
+    if (!account?.address) {
+      return;
+    }
+
+    const checkAccountStatusInFirebase = async () => {
+      setAccountStatus("loading");
+      try {
+        // Chiamata all'endpoint API che interroga Firebase
+        const response = await fetch('/api/check-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: account.address }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setAccountStatus("inactive");
+            return;
+          }
+          throw new Error("Errore del server durante la verifica.");
+        }
+
+        const data = await response.json();
+        setAccountStatus(data.status === "active" ? "active" : "inactive");
+      } catch (error) {
+        console.error("Errore durante la verifica dello stato su Firebase:", error);
+        setAccountStatus("error");
+      }
+    };
+
+    checkAccountStatusInFirebase();
+  }, [account?.address]); // Si attiva ogni volta che l'indirizzo dell'account cambia
+
 
   const fetchBatchesFromInsight = useCallback(async (contributorAddress: string) => {
     setIsLoadingBatches(true);
@@ -278,10 +316,11 @@ export default function AziendaPage() {
   }, []);
 
   useEffect(() => {
-    if (contributorData && contributorData[2] && account?.address) {
+    // La lista batch viene caricata solo se l'utente è ATTIVO e i dati del contratto sono disponibili
+    if (accountStatus === 'active' && contributorData && account?.address) {
       fetchBatchesFromInsight(account.address);
     }
-  }, [contributorData, account?.address, fetchBatchesFromInsight]);
+  }, [accountStatus, contributorData, account?.address, fetchBatchesFromInsight]);
 
   const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => setSelectedFile(e.target.files?.[0] || null);
@@ -297,7 +336,6 @@ export default function AziendaPage() {
     }
     setLoadingMessage("Preparazione transazione...");
     let imageIpfsHash = "N/A";
-
     if (selectedFile) {
       setLoadingMessage("Caricamento Immagine...");
       try {
@@ -314,7 +352,6 @@ export default function AziendaPage() {
         return;
       }
     }
-
     setLoadingMessage("Transazione in corso...");
     const transaction = prepareContractCall({
       contract,
@@ -325,18 +362,13 @@ export default function AziendaPage() {
     sendTransaction(transaction, {
       onSuccess: async () => {
         setTxResult({ status: "success", message: "Iscrizione creata! Aggiorno i dati..." });
-        if (contributorData && account?.address) {
+        if (account?.address) {
           try {
-            const newCredits = Number(contributorData[1]) - 1;
-            await fetch('/api/activate-company', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'setCredits', walletAddress: account.address, credits: newCredits }),
-            });
+            // Aggiorna i dati dalla blockchain e la lista delle iscrizioni
             refetchContributorInfo(); 
             fetchBatchesFromInsight(account.address);
           } catch (error) {
-            console.error("Errore aggiornamento crediti su Firebase:", error);
+            console.error("Errore aggiornamento dati post-transazione:", error);
           }
         }
         setLoadingMessage("");
@@ -357,23 +389,36 @@ export default function AziendaPage() {
     );
   }
 
+  // --- MODIFICATO ---
+  // La logica di rendering ora si basa prima sullo stato di Firebase (accountStatus)
   const renderContent = () => {
-    if (isStatusLoading) return <div className="centered-container"><p>Verifica stato account...</p></div>;
-    if (isError) return <div className="centered-container"><p style={{ color: "red" }}>Errore nel recuperare i dati. Riprova.</p></div>;
-    if (contributorData) {
-      const isContributorActive = contributorData[2];
-      if (isContributorActive) {
-        return (
-          <>
-            <DashboardHeader data={contributorData} onNewInscriptionClick={openModal} />
-            <BatchList batches={batches} isLoading={isLoadingBatches} />
-          </>
-        );
-      } else {
-        return <RegistrationForm walletAddress={account.address} />;
-      }
+    if (accountStatus === "loading") {
+      return <div className="centered-container"><p>Verifica stato account...</p></div>;
     }
-    return <div className="centered-container"><p>Impossibile determinare lo stato dell'account.</p></div>;
+    
+    if (accountStatus === "error") {
+      return <div className="centered-container"><p style={{ color: "red" }}>Errore nel verificare i dati. Riprova.</p></div>;
+    }
+
+    if (accountStatus === "active") {
+      // Se l'account è attivo, mostriamo la dashboard,
+      // ma prima controlliamo lo stato dei dati letti dalla blockchain.
+      if (isStatusLoading) {
+        return <div className="centered-container"><p>Caricamento dati dalla blockchain...</p></div>;
+      }
+      if (isError || !contributorData) {
+        return <div className="centered-container"><p style={{ color: "red" }}>Errore nel caricare i dati della dashboard dal contratto.</p></div>;
+      }
+      return (
+        <>
+          <DashboardHeader data={contributorData} onNewInscriptionClick={openModal} />
+          <BatchList batches={batches} isLoading={isLoadingBatches} />
+        </>
+      );
+    }
+    
+    // Se lo stato è 'inactive' o qualsiasi altro caso non gestito, mostra il form di registrazione.
+    return <RegistrationForm walletAddress={account.address} />;
   };
 
   const isProcessing = loadingMessage !== "" || isPending;
@@ -396,12 +441,12 @@ export default function AziendaPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h2>Nuova Iscrizione ({currentStep}/6)</h2></div>
             <div className="modal-body" style={{ minHeight: "350px" }}>
-              {currentStep === 1 && ( <div> <div className="form-group"> <label> Nome Iscrizione <span style={{ color: "red", fontWeight: "bold" }}> * Obbligatorio </span> </label> <input type="text" name="name" value={formData.name} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.name.length} / 100 </small> </div> <div style={helpTextStyle}> <p><strong>ℹ️ Come scegliere il Nome Iscrizione</strong></p> <p>Il Nome Iscrizione è un'etichetta descrittiva che ti aiuta a identificare in modo chiaro ciò che stai registrando on-chain. Ad esempio:</p> <ul style={{ textAlign: "left", paddingLeft: "20px" }}> <li>Il nome di un prodotto o varietà: <em>Pomodori San Marzano 2025</em></li> <li>Il numero di lotto: <em>Lotto LT1025 – Olio EVO 3L</em></li> <li>Il nome di un contratto: <em>Contratto fornitura COOP – Aprile 2025</em></li><li>Una certificazione o audit: <em>Certificazione Bio ICEA 2025</em></li><li>Un riferimento amministrativo: <em>Ordine n.778 – Cliente NordItalia</em></li></ul> <p style={{ marginTop: "1rem" }}><strong>📌 Consiglio:</strong> scegli un nome breve ma significativo, che ti aiuti a ritrovare facilmente l’iscrizione anche dopo mesi o anni.</p> </div> </div> )}
-              {currentStep === 2 && ( <div> <div className="form-group"> <label> Descrizione <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <textarea name="description" value={formData.description} onChange={handleModalInputChange} className="form-input" rows={4} maxLength={500}></textarea> <small className="char-counter"> {formData.description.length} / 500 </small> </div> <div style={helpTextStyle}> <p>Inserisci una descrizione del prodotto, lotto, contratto o altro elemento principale. Fornisci tutte le informazioni essenziali per identificarlo chiaramente nella filiera o nel contesto dell’iscrizione.</p> </div> </div> )}
-              {currentStep === 3 && ( <div> <div className="form-group"> <label> Luogo <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="text" name="location" value={formData.location} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.location.length} / 100 </small> </div> <div style={helpTextStyle}> <p>Inserisci il luogo di origine o di produzione del prodotto o lotto. Può essere una città, una regione, un'azienda agricola o uno stabilimento specifico per identificare con precisione dove è stato realizzato.</p> </div> </div> )}
-              {currentStep === 4 && ( <div> <div className="form-group"> <label> Data <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="date" name="date" value={formData.date} onChange={handleModalInputChange} className="form-input" max={today} /> </div> <div style={helpTextStyle}> <p>Inserisci una data, puoi utilizzare il giorno attuale o una data precedente alla conferma di questa Iscrizione.</p> </div> </div> )}
-              {currentStep === 5 && ( <div> <div className="form-group"> <label> Immagine <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="file" name="image" onChange={handleFileChange} className="form-input" accept="image/png, image/jpeg, image/webp" /> <small style={{ marginTop: "4px" }}> Formati: PNG, JPG, WEBP. Max: 5 MB. </small> {selectedFile && ( <p className="file-name-preview"> File: {selectedFile.name} </p> )} </div> <div style={helpTextStyle}> <p>Carica un’immagine rappresentativa del prodotto, lotto, contratto, etc. Rispetta i formati e i limiti di peso.<br/><strong>Consiglio:</strong> Per una visualizzazione ottimale, usa un'immagine quadrata (formato 1:1).</p> </div> </div> )}
-              {currentStep === 6 && ( <div> <h4>Riepilogo Dati</h4> <div className="recap-summary"> <p> <strong>Nome:</strong> {truncateText(formData.name, 40) || "N/D"} </p> <p> <strong>Descrizione:</strong> {truncateText(formData.description, 60) || "N/D"} </p> <p> <strong>Luogo:</strong> {truncateText(formData.location, 40) || "N/D"} </p> <p> <strong>Data:</strong> {formData.date ? formData.date.split("-").reverse().join("/") : "N/D"} </p> <p> <strong>Immagine:</strong> {truncateText(selectedFile?.name || "", 40) || "Nessuna"} </p> </div> <p> Vuoi confermare e registrare questi dati sulla blockchain? </p> </div> )}
+                {currentStep === 1 && ( <div> <div className="form-group"> <label> Nome Iscrizione <span style={{ color: "red", fontWeight: "bold" }}> * Obbligatorio </span> </label> <input type="text" name="name" value={formData.name} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.name.length} / 100 </small> </div> <div style={helpTextStyle}> <p><strong>ℹ️ Come scegliere il Nome Iscrizione</strong></p> <p>Il Nome Iscrizione è un'etichetta descrittiva che ti aiuta a identificare in modo chiaro ciò che stai registrando on-chain. Ad esempio:</p> <ul style={{ textAlign: "left", paddingLeft: "20px" }}> <li>Il nome di un prodotto o varietà: <em>Pomodori San Marzano 2025</em></li> <li>Il numero di lotto: <em>Lotto LT1025 – Olio EVO 3L</em></li> <li>Il nome di un contratto: <em>Contratto fornitura COOP – Aprile 2025</em></li><li>Una certificazione o audit: <em>Certificazione Bio ICEA 2025</em></li><li>Un riferimento amministrativo: <em>Ordine n.778 – Cliente NordItalia</em></li></ul> <p style={{ marginTop: "1rem" }}><strong>📌 Consiglio:</strong> scegli un nome breve ma significativo, che ti aiuti a ritrovare facilmente l’iscrizione anche dopo mesi o anni.</p> </div> </div> )}
+                {currentStep === 2 && ( <div> <div className="form-group"> <label> Descrizione <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <textarea name="description" value={formData.description} onChange={handleModalInputChange} className="form-input" rows={4} maxLength={500}></textarea> <small className="char-counter"> {formData.description.length} / 500 </small> </div> <div style={helpTextStyle}> <p>Inserisci una descrizione del prodotto, lotto, contratto o altro elemento principale. Fornisci tutte le informazioni essenziali per identificarlo chiaramente nella filiera o nel contesto dell’iscrizione.</p> </div> </div> )}
+                {currentStep === 3 && ( <div> <div className="form-group"> <label> Luogo <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="text" name="location" value={formData.location} onChange={handleModalInputChange} className="form-input" maxLength={100} /> <small className="char-counter"> {formData.location.length} / 100 </small> </div> <div style={helpTextStyle}> <p>Inserisci il luogo di origine o di produzione del prodotto o lotto. Può essere una città, una regione, un'azienda agricola o uno stabilimento specifico per identificare con precisione dove è stato realizzato.</p> </div> </div> )}
+                {currentStep === 4 && ( <div> <div className="form-group"> <label> Data <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="date" name="date" value={formData.date} onChange={handleModalInputChange} className="form-input" max={today} /> </div> <div style={helpTextStyle}> <p>Inserisci una data, puoi utilizzare il giorno attuale o una data precedente alla conferma di questa Iscrizione.</p> </div> </div> )}
+                {currentStep === 5 && ( <div> <div className="form-group"> <label> Immagine <span style={{ color: "#6c757d" }}> Non obbligatorio </span> </label> <input type="file" name="image" onChange={handleFileChange} className="form-input" accept="image/png, image/jpeg, image/webp" /> <small style={{ marginTop: "4px" }}> Formati: PNG, JPG, WEBP. Max: 5 MB. </small> {selectedFile && ( <p className="file-name-preview"> File: {selectedFile.name} </p> )} </div> <div style={helpTextStyle}> <p>Carica un’immagine rappresentativa del prodotto, lotto, contratto, etc. Rispetta i formati e i limiti di peso.<br/><strong>Consiglio:</strong> Per una visualizzazione ottimale, usa un'immagine quadrata (formato 1:1).</p> </div> </div> )}
+                {currentStep === 6 && ( <div> <h4>Riepilogo Dati</h4> <div className="recap-summary"> <p> <strong>Nome:</strong> {truncateText(formData.name, 40) || "N/D"} </p> <p> <strong>Descrizione:</strong> {truncateText(formData.description, 60) || "N/D"} </p> <p> <strong>Luogo:</strong> {truncateText(formData.location, 40) || "N/D"} </p> <p> <strong>Data:</strong> {formData.date ? formData.date.split("-").reverse().join("/") : "N/D"} </p> <p> <strong>Immagine:</strong> {truncateText(selectedFile?.name || "", 40) || "Nessuna"} </p> </div> <p> Vuoi confermare e registrare questi dati sulla blockchain? </p> </div> )}
             </div>
             <div className="modal-footer" style={{ justifyContent: "space-between" }}>
               <div>{currentStep > 1 && (<button onClick={handlePrevStep} className="web3-button secondary" disabled={isProcessing}>Indietro</button>)}</div>
