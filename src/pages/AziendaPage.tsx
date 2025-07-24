@@ -1,8 +1,8 @@
 // FILE: src/pages/AziendaPage.tsx
 // VERSIONE DEFINITIVA: Utilizza i parametri corretti e la chiamata a Insight funzionante.
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import {
   ConnectButton,
   useActiveAccount,
@@ -24,12 +24,12 @@ import TransactionStatusModal from "../components/TransactionStatusModal";
 // --- Stili CSS ---
 const AziendaPageStyles = () => (
   <style>{` 
-     .app-container-full { padding: 0 2rem; } 
-     .main-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; } 
-     .header-title { font-size: 1.75rem; font-weight: bold; }
-     .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
-     
-     .dashboard-header-card {
+      .app-container-full { padding: 0 2rem; } 
+      .main-header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; } 
+      .header-title { font-size: 1.75rem; font-weight: bold; }
+      .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; }
+      
+      .dashboard-header-card {
         background-color: #212529;
         border: 1px solid #495057;
         border-radius: 12px;
@@ -42,41 +42,41 @@ const AziendaPageStyles = () => (
         flex-wrap: wrap;
         gap: 1.5rem;
         margin-bottom: 2rem;
-     }
-     .dashboard-header-info h2 { margin-top: 0; margin-bottom: 1rem; font-size: 2rem; font-weight: 600; }
-     .dashboard-header-info p { margin: 0.5rem 0; font-size: 1.1rem; color: #adb5bd; }
-     .dashboard-header-info p strong { color: #f8f9fa; margin-left: 0.5rem; }
-     .status-active { color: #28a745; font-weight: bold; }
-     .recap-summary { text-align: left; padding: 15px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; margin-bottom: 20px;} 
-     .recap-summary p { margin: 8px 0; word-break: break-word; } 
-     .recap-summary p strong { color: #f8f9fa; } 
+      }
+      .dashboard-header-info h2 { margin-top: 0; margin-bottom: 1rem; font-size: 2rem; font-weight: 600; }
+      .dashboard-header-info p { margin: 0.5rem 0; font-size: 1.1rem; color: #adb5bd; }
+      .dashboard-header-info p strong { color: #f8f9fa; margin-left: 0.5rem; }
+      .status-active { color: #28a745; font-weight: bold; }
+      .recap-summary { text-align: left; padding: 15px; background-color: #2a2a2a; border: 1px solid #444; border-radius: 8px; margin-bottom: 20px;} 
+      .recap-summary p { margin: 8px 0; word-break: break-word; } 
+      .recap-summary p strong { color: #f8f9fa; } 
 
-     .batch-list-container { width: 100%; margin: 2rem auto; }
-     .batch-list-container h3 { border-bottom: 1px solid #495057; padding-bottom: 0.5rem; }
-     .company-table .desktop-row { display: table-row; }
-     .company-table .mobile-card-row { display: none; }
-     
-     @media (max-width: 768px) { 
-       .app-container-full { padding: 0 1rem; } 
-       .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
-       .dashboard-header-card { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
-       .dashboard-header-info h2 { font-size: 1.5rem; }
-       .dashboard-actions { width: 100%; margin-top: 1rem; }
-       .dashboard-actions .web3-button { width: 100%; }
+      .batch-list-container { width: 100%; margin: 2rem auto; }
+      .batch-list-container h3 { border-bottom: 1px solid #495057; padding-bottom: 0.5rem; }
+      .company-table .desktop-row { display: table-row; }
+      .company-table .mobile-card-row { display: none; }
+      
+      @media (max-width: 768px) { 
+        .app-container-full { padding: 0 1rem; } 
+        .main-header-bar { flex-direction: column; align-items: flex-start; gap: 1rem; } 
+        .dashboard-header-card { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
+        .dashboard-header-info h2 { font-size: 1.5rem; }
+        .dashboard-actions { width: 100%; margin-top: 1rem; }
+        .dashboard-actions .web3-button { width: 100%; }
 
-       .company-table thead { display: none; }
-       .company-table .desktop-row { display: none; }
-       .company-table .mobile-card-row { display: block; margin-bottom: 1rem; border: 1px solid #3e3e3e; border-radius: 8px; background-color: #2c2c2c; }
-       .company-table .mobile-card-row td { display: block; width: 100%; padding: 1rem; }
-       .mobile-batch-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
-       .mobile-batch-header h4 { margin: 0; font-size: 1.1rem; }
-       .mobile-batch-body p { margin: 0.5rem 0; }
-     } 
-   `}</style>
+        .company-table thead { display: none; }
+        .company-table .desktop-row { display: none; }
+        .company-table .mobile-card-row { display: block; margin-bottom: 1rem; border: 1px solid #3e3e3e; border-radius: 8px; background-color: #2c2c2c; }
+        .company-table .mobile-card-row td { display: block; width: 100%; padding: 1rem; }
+        .mobile-batch-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
+        .mobile-batch-header h4 { margin: 0; font-size: 1.1rem; }
+        .mobile-batch-body p { margin: 0.5rem 0; }
+      } 
+    `}</style>
 );
 
 // --- CONFIGURAZIONE GLOBALE (AGGIORNATA) ---
-const CLIENT_ID = "023dd6504a82409b2bc7cb971fd35b16";
+const CLIENT_ID = "023cdd6504a82409b2bc7cb971fd35b16";
 const CONTRACT_ADDRESS = "0xd0bad36896df719b26683e973f2fc6135f215d4e";
 
 const client = createThirdwebClient({ clientId: CLIENT_ID });
@@ -109,10 +109,12 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
     });
     const [status, setStatus] = useState<{ message: string; type: 'error' | 'success' | 'info' } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.companyName || !formData.contactEmail || !formData.sector) {
@@ -121,6 +123,7 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
         }
         setIsLoading(true);
         setStatus({ message: "Invio della richiesta in corso...", type: 'info' });
+
         try {
             const response = await fetch('/api/send-email', {
                 method: 'POST',
@@ -138,6 +141,7 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
             setIsLoading(false);
         }
     };
+
     if (status?.type === 'success') {
         return (
             <div className="card" style={{marginTop: '2rem', textAlign: 'center'}}>
@@ -146,6 +150,7 @@ const RegistrationForm = ({ walletAddress }: { walletAddress: string }) => {
             </div>
         );
     }
+
     return (
         <div className="card" style={{marginTop: '2rem', maxWidth: '700px', margin: '2rem auto', textAlign: 'left'}}>
             <h3>Benvenuto su Easy Chain!</h3>
@@ -188,6 +193,7 @@ const DashboardHeader = ({ data, onNewInscriptionClick }: { data: readonly [stri
 const BatchList = ({ batches, isLoading }: { batches: BatchData[], isLoading: boolean }) => {
     if (isLoading) { return <div className="centered-container"><p>Caricamento iscrizioni create...</p></div>; }
     if (batches.length === 0) { return <div className="centered-container"><p>Non hai ancora creato nessuna iscrizione.</p></div>; }
+
     return (
         <div className="batch-list-container">
             <h3>Le Tue Iscrizioni</h3>
@@ -235,7 +241,6 @@ export default function AziendaPage() {
     setBatches([]);
     const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     
-    // --- CORREZIONE DEFINITIVA: Usa event_name come nel file index.html funzionante ---
     const params = new URLSearchParams({
       contract_address: CONTRACT_ADDRESS,
       event_name: "BatchInitialized",
@@ -292,6 +297,7 @@ export default function AziendaPage() {
     }
     setLoadingMessage("Preparazione transazione...");
     let imageIpfsHash = "N/A";
+
     if (selectedFile) {
       setLoadingMessage("Caricamento Immagine...");
       try {
@@ -308,6 +314,7 @@ export default function AziendaPage() {
         return;
       }
     }
+
     setLoadingMessage("Transazione in corso...");
     const transaction = prepareContractCall({
       contract,
