@@ -1,8 +1,10 @@
-// PERCORSO FILE: pages/api/get-contract-events.ts
-// DESCRIZIONE: Questo è un nuovo endpoint API che viene eseguito solo sul server.
-// Il suo scopo è chiamare in modo sicuro le API di thirdweb usando la secretKey
-// e restituire i dati al componente frontend.
+// PERCORSO FILE: api/get-contract-events.ts (nella root del progetto)
+// DESCRIZIONE: Questo è l'endpoint API per un progetto Vite su Vercel.
+// Viene eseguito solo sul server e chiama in modo sicuro le API di thirdweb.
 
+// Nota: A seconda della configurazione di Vercel, potresti dover usare
+// l'import `import { VercelRequest, VercelResponse } from '@vercel/node';`
+// al posto di quello di Next.js, ma per ora proviamo con questo.
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createThirdwebClient, getContract } from 'thirdweb';
 import { polygon } from 'thirdweb/chains';
@@ -29,10 +31,8 @@ export default async function handler(
 
   try {
     // Leggiamo la secret key dalle variabili d'ambiente del server.
-    // Questo è il punto chiave della sicurezza: la chiave non lascia mai il backend.
     const secretKey = process.env.THIRDWEB_SECRET_KEY;
     if (!secretKey) {
-      // Se la chiave non è configurata sul server (es. su Vercel), restituiamo un errore.
       throw new Error("La variabile d'ambiente THIRDWEB_SECRET_KEY non è impostata sul server.");
     }
 
@@ -47,21 +47,26 @@ export default async function handler(
     });
 
     // 3. Recuperiamo TUTTI gli eventi 'BatchInitialized' dal contratto.
-    // L'SDK gestisce internamente la chiamata autenticata all'API di Insight.
     const events = await getContractEvents({
       contract,
-      // Specifichiamo quale evento ci interessa per essere più efficienti
       eventName: 'BatchInitialized', 
     });
+
+    // IMPORTANTE: Aggiungiamo gli header per il CORS per permettere al frontend di chiamare l'API
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Se la richiesta è di tipo OPTIONS (preflight), rispondiamo subito con 204
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
 
     // 4. Inviamo i dati degli eventi al frontend con successo.
     return res.status(200).json({ events });
 
   } catch (error: any) {
-    // In caso di errore, lo logghiamo sul server per poterlo analizzare...
     console.error('Errore API nel recuperare gli eventi del contratto:', error);
-    
-    // ...e inviamo un messaggio di errore generico al client.
     return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }
