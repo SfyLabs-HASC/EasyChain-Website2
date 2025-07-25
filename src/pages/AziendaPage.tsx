@@ -233,11 +233,12 @@ export default function AziendaPage() {
   const fetchBatchesFromInsight = useCallback(async (contributorAddress: string) => {
     setIsLoadingBatches(true);
     setBatches([]);
-    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events`;
     
-    // --- CORREZIONE DEFINITIVA: Usa event_name come nel file index.html funzionante ---
+    // 1. Costruisci l'URL base includendo l'indirizzo del contratto nel percorso
+    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events/${CONTRACT_ADDRESS}`;
+    
+    // 2. Rimuovi 'contract_address' dai parametri della query
     const params = new URLSearchParams({
-      contract_address: CONTRACT_ADDRESS,
       event_name: "BatchInitialized",
       "filters[contributor]": contributorAddress,
       order: "desc",
@@ -245,6 +246,7 @@ export default function AziendaPage() {
     });
 
     try {
+      // 3. Esegui la chiamata con l'URL e i parametri corretti
       const response = await fetch(`${insightUrl}?${params.toString()}`, {
         method: "GET",
         headers: { "x-thirdweb-client-id": CLIENT_ID },
