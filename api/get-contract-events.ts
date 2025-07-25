@@ -5,8 +5,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createThirdwebClient, getContract, getContractEvents } from 'thirdweb';
 import { polygon } from 'thirdweb/chains';
-// --- MODIFICA CHIAVE 1: Importare l'ABI dal nuovo file ---
-import { supplyChainABI } from './abi';
+// --- MODIFICA CHIAVE: Aggiungere l'estensione .js all'import ---
+// Questo è necessario per la risoluzione dei moduli nell'ambiente serverless di Vercel.
+import { supplyChainABI } from './abi.js';
 
 const CONTRACT_ADDRESS = '0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b';
 
@@ -50,15 +51,13 @@ export default async function handler(
     
     const client = createThirdwebClient({ secretKey });
 
-    // --- MODIFICA CHIAVE 2: Passare l'ABI a getContract ---
     const contract = getContract({
       client,
       chain: polygon,
       address: CONTRACT_ADDRESS,
-      abi: supplyChainABI, // <-- L'ABI è ora fornito!
+      abi: supplyChainABI,
     });
 
-    // Questo filtro ora funzionerà perché l'SDK sa che 'contributor' è un campo indicizzato
     const events = await getContractEvents({
       contract,
       eventName: 'BatchInitialized', 
