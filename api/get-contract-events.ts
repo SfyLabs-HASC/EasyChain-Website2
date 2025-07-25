@@ -1,6 +1,6 @@
 // PERCORSO FILE: api/get-contract-events.ts
-// DESCRIZIONE: Versione di debug con logging per ispezionare la struttura
-// degli eventi e risolvere il problema del filtro.
+// DESCRIZIONE: Versione finale che filtra manualmente gli eventi in base
+// alla struttura dati reale rivelata dai log di diagnostica.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createThirdwebClient, getContract, getContractEvents } from 'thirdweb';
@@ -49,46 +49,42 @@ export default async function handler(
     const client = createThirdwebClient({ secretKey });
     const contract = getContract({ client, chain: polygon, address: CONTRACT_ADDRESS, abi: supplyChainABI });
 
-    const [allBatchInitEvents, allBatchStepEvents] = await Promise.all([
-      getContractEvents({ contract, eventName: 'BatchInitialized' }),
-      getContractEvents({ contract, eventName: 'BatchStepAdded' })
-    ]);
+    // --- MODIFICA 1: Recupera TUTTI gli eventi, senza specificare il nome ---
+    const allEvents = await getContractEvents({ contract });
 
-    // --- LOGGING DI DIAGNOSTICA ---
-    if (allBatchInitEvents.length > 0) {
-      // Usiamo una versione serializzabile per il log per evitare problemi con BigInt
-      const serializableEventForLog = serializeBigInts(allBatchInitEvents[0]);
-      console.log("DIAGNOSTICO: Struttura del primo evento BatchInitialized:", JSON.stringify(serializableEventForLog, null, 2));
-    } else {
-      console.log("DIAGNOSTICO: Nessun evento BatchInitialized trovato.");
-    }
-    // --- FINE LOGGING ---
-
-    const userBatches = allBatchInitEvents.filter(event => {
-      const contributor = (event.data as any)?.contributor;
+    // --- MODIFICA 2: Filtra manualmente con la logica corretta ---
+    
+    // Filtra prima per nome dell'evento, POI per contributor
+    const userBatches = allEvents.filter(event => {
+      // Controlla che sia un evento 'BatchInitialized'
+      if (event.eventName !== 'BatchInitialized') {
+        return false;
+      }
+      // Ora che sappiamo che è del tipo giusto, controlliamo il contributor in 'event.args'
+      const contributor = (event.args as any)?.contributor;
       return contributor && contributor.toLowerCase() === userAddress.toLowerCase();
     });
 
-    // --- LOGGING DI DIAGNOSTICA 2 ---
-    console.log(`DIAGNOSTICO: Trovati ${allBatchInitEvents.length} eventi BatchInitialized totali. Dopo il filtro, ne rimangono ${userBatches.length} per l'utente ${userAddress}.`);
-    // --- FINE LOGGING ---
+    // Filtra gli step per nome
+    const allBatchStepEvents = allEvents.filter(event => event.eventName === 'BatchStepAdded');
 
     const stepsByBatchId = new Map<string, any[]>();
     for (const stepEvent of allBatchStepEvents) {
-      const stepData = stepEvent.data as any;
-      if (stepData && typeof stepData.batchId !== 'undefined' && stepData.batchId !== null) {
-        const batchId = stepData.batchId.toString();
+      const stepArgs = stepEvent.args as any;
+      if (stepArgs && typeof stepArgs.batchId !== 'undefined' && stepArgs.batchId !== null) {
+        const batchId = stepArgs.batchId.toString();
         if (!stepsByBatchId.has(batchId)) {
           stepsByBatchId.set(batchId, []);
         }
-        stepsByBatchId.get(batchId)!.push(stepData);
+        stepsByBatchId.get(batchId)!.push(stepArgs);
       }
     }
     
     const combinedData = userBatches.map(batchEvent => {
-      const batchId = (batchEvent.data as any).batchId.toString();
+      const batchArgs = batchEvent.args as any;
+      const batchId = batchArgs.batchId.toString();
       return {
-        ...batchEvent.data,
+        ...batchArgs, // Usiamo 'args' come fonte dei dati
         transactionHash: batchEvent.transactionHash,
         steps: stepsByBatchId.get(batchId) || []
       };
