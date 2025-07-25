@@ -1,7 +1,5 @@
 // FILE: src/pages/AziendaPage.tsx (Versione Corretta)
-// DESCRIZIONE: Il file è stato modificato per caricare i dati dei lotti (batch)
-// in modo sicuro, chiamando l'endpoint API interno (/api/get-contract-events)
-// invece di tentare di usare la secretKey direttamente nel browser.
+// DESCRIZIONE: Il file è stato modificato per correggere un errore di sintassi che bloccava la build su Vercel.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,8 +20,6 @@ import { supplyChainABI as abi } from "../abi/contractABI";
 import "../App.css";
 
 import TransactionStatusModal from "../components/TransactionStatusModal";
-
-// --- INIZIO CODICE NON MODIFICATO (fino alla dichiarazione del componente) ---
 
 // --- Stili CSS ---
 const AziendaPageStyles = () => (
@@ -219,7 +215,7 @@ const AziendaPageStyles = () => (
         border-top-color: #3b82f6;
       }
    `}</style>
-));
+);
 
 // --- Costanti e Tipi ---
 const CONTRACT_ADDRESS = "0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b";
@@ -271,12 +267,6 @@ const AziendaPage: React.FC = () => {
   const [isLoadingBatches, setIsLoadingBatches] = useState(true);
   const [errorBatches, setErrorBatches] = useState<string | null>(null);
 
-  // --- FINE CODICE NON MODIFICATO ---
-
-  // ####################################################################
-  // ### INIZIO DELLA SEZIONE MODIFICATA ###
-  // ####################################################################
-
   useEffect(() => {
     const loadBatches = async () => {
       setIsLoadingBatches(true);
@@ -325,13 +315,6 @@ const AziendaPage: React.FC = () => {
 
     loadBatches();
   }, []); // L'array di dipendenze è vuoto, quindi questo effetto viene eseguito solo una volta, quando il componente viene montato.
-
-  // ####################################################################
-  // ### FINE DELLA SEZIONE MODIFICATA ###
-  // ####################################################################
-
-
-  // --- INIZIO RESTO DEL CODICE ORIGINALE (NON MODIFICATO) ---
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => {
@@ -522,5 +505,3 @@ const AziendaPage: React.FC = () => {
 };
 
 export default AziendaPage;
-
-// --- FINE RESTO DEL CODICE ORIGINALE (NON MODIFICATO) ---
