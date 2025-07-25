@@ -1,11 +1,8 @@
 // PERCORSO FILE: api/get-contract-events.ts (nella root del progetto)
-// DESCRIZIONE: Questo è l'endpoint API per un progetto Vite su Vercel.
-// Viene eseguito solo sul server e chiama in modo sicuro le API di thirdweb.
+// DESCRIZIONE: Versione corretta che utilizza i tipi di Vercel (@vercel/node)
+// invece di quelli di Next.js, risolvendo l'errore 500 in un ambiente Vite.
 
-// Nota: A seconda della configurazione di Vercel, potresti dover usare
-// l'import `import { VercelRequest, VercelResponse } from '@vercel/node';`
-// al posto di quello di Next.js, ma per ora proviamo con questo.
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createThirdwebClient, getContract } from 'thirdweb';
 import { polygon } from 'thirdweb/chains';
 import { getContractEvents } from 'thirdweb/extensions/events';
@@ -15,25 +12,36 @@ const CONTRACT_ADDRESS = '0x0c5e6204e80e6fb3c0c7098c4fa84b2210358d0b';
 
 // Definiamo un tipo per la risposta per maggiore chiarezza
 type Data = {
-  events?: any[]; // Idealmente, definire un tipo più specifico per gli eventi
+  events?: any[];
   error?: string;
 };
 
 export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
+  req: VercelRequest, // <-- TIPO CORRETTO PER VITE/VERCEL
+  res: VercelResponse // <-- TIPO CORRETTO PER VITE/VERCEL
 ) {
+  // IMPORTANTE: Aggiungiamo gli header per il CORS per permettere al frontend di chiamare l'API
+  // Questo è fondamentale in un ambiente serverless.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Vercel gestisce le richieste OPTIONS automaticamente, ma è buona norma includerlo.
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Controllo di sicurezza: consentiamo solo richieste di tipo GET
   if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
   }
 
   try {
     // Leggiamo la secret key dalle variabili d'ambiente del server.
     const secretKey = process.env.THIRDWEB_SECRET_KEY;
     if (!secretKey) {
-      throw new Error("La variabile d'ambiente THIRDWEB_SECRET_KEY non è impostata sul server.");
+      // Restituiamo un errore JSON formattato correttamente
+      return res.status(500).json({ error: "La variabile d'ambiente THIRDWEB_SECRET_KEY non è impostata sul server." });
     }
 
     // 1. Inizializziamo il client di thirdweb sul SERVER-SIDE.
@@ -52,21 +60,14 @@ export default async function handler(
       eventName: 'BatchInitialized', 
     });
 
-    // IMPORTANTE: Aggiungiamo gli header per il CORS per permettere al frontend di chiamare l'API
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    // Se la richiesta è di tipo OPTIONS (preflight), rispondiamo subito con 204
-    if (req.method === 'OPTIONS') {
-        return res.status(204).end();
-    }
-
     // 4. Inviamo i dati degli eventi al frontend con successo.
     return res.status(200).json({ events });
 
   } catch (error: any) {
+    // In caso di errore, lo logghiamo sul server per poterlo analizzare...
     console.error('Errore API nel recuperare gli eventi del contratto:', error);
+    
+    // ...e inviamo un messaggio di errore JSON al client.
     return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 }
