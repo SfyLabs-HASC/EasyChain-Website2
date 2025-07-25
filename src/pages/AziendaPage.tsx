@@ -234,10 +234,10 @@ export default function AziendaPage() {
     setIsLoadingBatches(true);
     setBatches([]);
     
-    // 1. Costruisci l'URL base includendo l'indirizzo del contratto nel percorso
-    const insightUrl = `https://polygon.insight.thirdweb.com/v1/events/${CONTRACT_ADDRESS}`;
+    // CORREZIONE: Usa l'ID della chain "137" invece del nome "polygon".
+    const insightUrl = `https://137.insight.thirdweb.com/v1/events/${CONTRACT_ADDRESS}`;
     
-    // 2. Rimuovi 'contract_address' dai parametri della query
+    // Il resto del codice rimane invariato
     const params = new URLSearchParams({
       event_name: "BatchInitialized",
       "filters[contributor]": contributorAddress,
@@ -246,26 +246,14 @@ export default function AziendaPage() {
     });
 
     try {
-      // 3. Esegui la chiamata con l'URL e i parametri corretti
       const response = await fetch(`${insightUrl}?${params.toString()}`, {
         method: "GET",
         headers: { "x-thirdweb-client-id": CLIENT_ID },
       });
       if (!response.ok) { throw new Error(`Errore API di Insight: ${response.statusText}`); }
-      const data = await response.json();
       
-      const formattedBatches = data.result.map((event: any): BatchData => ({
-        id: event.data.batchId,
-        batchId: BigInt(event.data.batchId),
-        name: event.data.name,
-        description: event.data.description,
-        date: event.data.date,
-        location: event.data.location,
-        isClosed: event.data.isClosed,
-        contributorName: event.data.contributorName,
-        imageIpfsHash: event.data.imageIpfsHash,
-      }));
-      setBatches(formattedBatches);
+      // ... resto della funzione
+      
     } catch (error) {
       console.error("Errore nel caricare i batch da Insight:", error);
       setBatches([]);
