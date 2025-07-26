@@ -1,6 +1,6 @@
 // FILE: src/pages/AziendaPage.tsx
-// DESCRIZIONE: Versione corretta con l'import di 'waitForTransaction'
-// corretto per risolvere l'errore di build su Vercel.
+// DESCRIZIONE: Versione corretta che utilizza la funzione 'waitForTransactionReceipt'
+// con l'import corretto per risolvere l'errore di build.
 
 import React, { useState, useEffect } from "react";
 import { ConnectButton, useActiveAccount, useSendTransaction } from "thirdweb/react";
@@ -8,8 +8,9 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
-  waitForTransaction, // <-- MODIFICA CHIAVE: Import corretto
 } from "thirdweb";
+// --- MODIFICA CHIAVE 1: Import corretto ---
+import { waitForTransactionReceipt } from "thirdweb/transaction";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -348,7 +349,12 @@ const AziendaPage: React.FC = () => {
             onSuccess: async (result) => {
                 setLoadingMessage("Transazione inviata! In attesa di finalizzazione sulla blockchain...");
                 try {
-                    await waitForTransaction({ transactionHash: result.transactionHash, chain: polygon, client: client });
+                    // --- MODIFICA CHIAVE 2: Chiamata alla funzione corretta ---
+                    await waitForTransactionReceipt({
+                        transactionHash: result.transactionHash,
+                        chain: polygon,
+                        client: client,
+                    });
                     setLoadingMessage("Transazione finalizzata! Aggiorno i dati...");
                     
                     if (companyStatus.data && account?.address) {
