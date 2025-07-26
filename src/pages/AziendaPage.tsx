@@ -1,14 +1,18 @@
 // FILE: src/pages/AziendaPage.tsx
-// DESCRIZIONE: Versione completamente ridisegnata con un approccio mobile-first,
-// una nuova palette di colori, icone personalizzate e un'estetica moderna.
+// DESCRIZIONE: Versione corretta con l'import di 'waitForTransaction'
+// corretto per risolvere l'errore di build su Vercel.
 
 import React, { useState, useEffect } from "react";
 import { ConnectButton, useActiveAccount, useSendTransaction } from "thirdweb/react";
-import { createThirdwebClient, getContract, prepareContractCall } from "thirdweb";
+import {
+  createThirdwebClient,
+  getContract,
+  prepareContractCall,
+  waitForTransaction, // <-- MODIFICA CHIAVE: Import corretto
+} from "thirdweb";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
-import { waitForTransaction } from "thirdweb/transaction";
 import "../App.css";
 
 import RegistrationForm from "../components/RegistrationForm";
