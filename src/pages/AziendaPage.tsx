@@ -1,6 +1,6 @@
 // FILE: src/pages/AziendaPage.tsx
-// DESCRIZIONE: Versione corretta con l'import di 'waitForTransactionReceipt'
-// corretto per risolvere l'errore di build.
+// DESCRIZIONE: Versione corretta con la struttura di import corretta per
+// 'waitForTransactionReceipt' per risolvere l'errore di build.
 
 import React, { useState, useEffect } from "react";
 import { ConnectButton, useActiveAccount, useSendTransaction } from "thirdweb/react";
@@ -8,8 +8,9 @@ import {
   createThirdwebClient,
   getContract,
   prepareContractCall,
-  waitForTransactionReceipt, // <-- MODIFICA CHIAVE: Import corretto
 } from "thirdweb";
+// --- MODIFICA CHIAVE 1: Import separato e corretto ---
+import { waitForTransactionReceipt } from "thirdweb/transaction";
 import { polygon } from "thirdweb/chains";
 import { inAppWallet } from "thirdweb/wallets";
 import { supplyChainABI as abi } from "../abi/contractABI";
@@ -484,5 +485,6 @@ const AziendaPage: React.FC = () => {
         </>
     );
 };
+
 
 export default AziendaPage;
