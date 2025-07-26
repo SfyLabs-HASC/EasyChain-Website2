@@ -1,6 +1,6 @@
 // FILE: src/pages/AziendaPage.tsx
-// DESCRIZIONE: Versione con import espliciti e corretti per risolvere
-// definitivamente l'errore di build su Vercel.
+// DESCRIZIONE: Versione finale e corretta. Funzionerà dopo aver aggiornato
+// le dipendenze del progetto con 'npm install thirdweb@latest'.
 
 import React, { useState, useEffect } from "react";
 // Thirdweb React Hooks
