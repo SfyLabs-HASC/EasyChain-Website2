@@ -221,7 +221,7 @@ const AziendaPage: React.FC = () => {
         });
     };
 
-    // Funzione per controllare lo stato dell'azienda su Firebase
+    // Funzione per controllare lo stato dell'azienda su Firebasee
     const checkCompanyStatus = async () => {
         if (!account) {
             setCompanyStatus({ isLoading: false, isActive: false, data: null, error: null });
